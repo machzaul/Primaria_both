@@ -1,0 +1,135 @@
+<!-- templates/final_result.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Hasil Jogetmu!</title>
+    <style>
+        body {
+            background: url('/assets/BG (2).png') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            position: relative;
+        }
+        .header {
+            position: absolute;
+            top: 3%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+        .header img {
+            height: 60px;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));
+        }
+        .corner-top-right {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: url('/assets/corner_top_right.png') no-repeat;
+            background-size: contain;
+            z-index: 5;
+        }
+        .corner-bottom-left {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200px;
+            height: 200px;
+            background: url('/assets/corner_bottom_left.png') no-repeat;
+            background-size: contain;
+            z-index: 5;
+        }
+        .content {
+            text-align: center;
+            padding: 20px;
+            z-index: 10;
+        }
+        .title {
+            font-size: 5vw;
+            font-weight: bold;
+            margin: 10px 0;
+            line-height: 1.2;
+        }
+        .subtitle {
+            font-size: 3vw;
+            margin: 10px 0;
+        }
+        .frame-container {
+            position: relative;
+            width: 80%;
+            max-width: 400px;
+            margin: 20px auto;
+            border: 0;
+        }
+        .frame-bg {
+            width: 100%;
+            height: auto;
+            max-height: 60vh;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255,0,0,0.5);
+            object-fit: cover;
+            z-index: 1;
+            background: black; /* fallback */
+        }
+        .qr-info {
+            font-size: 2vw;
+            margin-top: 30px;
+            line-height: 1.4;
+        }
+        .timer {
+            font-size: 2vw;
+            margin-top: 10px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="/assets/logoprimaction.png" alt="PRIMACTION">
+    </div>
+    <div class="corner-top-right"></div>
+    <div class="corner-bottom-left"></div>
+
+    <div class="content">
+        <div class="title">GOYANG SAMPE POL</div>
+        <div class="subtitle">MIMPI JADI POL</div>
+
+        <div class="frame-container">
+            <!-- Video Final (sudah menyatu dengan frame & teks) -->
+            <video class="frame-bg" autoplay muted loop playsinline preload="auto">
+                <source src="/hasilnari/{{ user.nama }}_{{ user.ktp6 }}_final.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+
+        <div class="qr-info">
+            Scan QR code disamping totem untuk mendownload hasil jogetmu!
+        </div>
+        <div class="timer" id="timer">Halaman tertutup dalam 60 detik.</div>
+    </div>
+
+    <script>
+        let seconds = 60;
+        const timerElement = document.getElementById('timer');
+        const interval = setInterval(() => {
+            seconds--;
+            timerElement.textContent = `Halaman tertutup dalam ${seconds} detik.`;
+            if (seconds <= 0) {
+                clearInterval(interval);
+                window.location.href = '/form';
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

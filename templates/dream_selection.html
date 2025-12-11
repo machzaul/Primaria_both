@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Pilih Mimpi - PRIMACTION</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .dream-container {
+            position: relative;
+            width: 80%;
+            max-width: 500px;
+            margin: 5% auto;
+            padding: 20px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(255,0,0,0.3);
+            z-index: 5;
+        }
+
+        .dream-title {
+            text-align: center;
+            font-size: 2.5vw;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .dream-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .dream-btn {
+            padding: 15px;
+            background: #111;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 8px;
+            font-size: 1.2vw;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dream-btn:hover {
+            background: #333;
+        }
+
+        .dream-btn.selected {
+            background: linear-gradient(90deg, #ccc, #eee);
+            color: #000;
+            border-color: #f00;
+            box-shadow: 0 0 15px rgba(255,0,0,0.5);
+            font-weight: bold;
+        }
+
+        .btn-continue {
+            width: 100%;
+            padding: 15px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.5vw;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-continue:hover {
+            background: #555;
+        }
+
+        .btn-continue:disabled {
+            background: #222;
+            cursor: not-allowed;
+        }
+
+        .btn-continue.active {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+            box-shadow: 0 0 15px rgba(255,0,0,0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img src="{{ url_for('static', filename='assets/logoprimaction.png') }}" alt="PRIMACTION Logo">
+    </div>
+
+    <div class="dream-container">
+        <div class="dream-title">Apa mimpi yang mau kamu capai?</div>
+
+        <div class="dream-options">
+            <div class="dream-btn" data-dream="bebas_cicilan">Bebas dari Cicilan</div>
+            <div class="dream-btn" data-dream="rumah_impian">Punya Rumah Impian</div>
+            <div class="dream-btn" data-dream="keliling_dunia">Keliling Dunia</div>
+            <div class="dream-btn" data-dream="sukses_berbisnis">Sukses Berbisnis</div>
+            <div class="dream-btn" data-dream="karir_melesat">Karir Melesat</div>
+            <div class="dream-btn" data-dream="ketemu_jodoh">Ketemu Jodoh</div>
+            <div class="dream-btn" data-dream="keluarga_bahagia">Bikin Keluarga Bahagia</div>
+        </div>
+
+        <button class="btn-continue" id="continueBtn" disabled>Oke, Lanjut Kuy!</button>
+    </div>
+
+    <script>
+        let selectedDream = null;
+
+        const dreamButtons = document.querySelectorAll('.dream-btn');
+        const continueBtn = document.getElementById('continueBtn');
+
+        dreamButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Reset semua
+                dreamButtons.forEach(b => b.classList.remove('selected'));
+                
+                // Tandai yang dipilih
+                this.classList.add('selected');
+                selectedDream = this.dataset.dream;
+
+                // Aktifkan tombol lanjut
+                continueBtn.disabled = false;
+                continueBtn.classList.add('active');
+            });
+        });
+
+        continueBtn.addEventListener('click', function() {
+            if (!selectedDream) return;
+
+            // Simpan mimpi ke localStorage
+            localStorage.setItem('userDream', selectedDream);
+
+            // Redirect ke halaman persiapan menari
+            window.location.href = '/dance_prep';
+        });
+    </script>
+
+</body>
+</html>

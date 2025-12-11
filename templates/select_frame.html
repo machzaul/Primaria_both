@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Pilih Frame - PRIMACTION</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .frame-selector {
+            position: relative;
+            width: 80%;
+            max-width: 600px;
+            margin: 5% auto;
+            padding: 20px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(255,0,0,0.3);
+            z-index: 5;
+        }
+
+        .selector-title {
+            text-align: center;
+            font-size: 2.5vw;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .frames-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .frame-option {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 9 / 16;
+            cursor: pointer;
+            border: 3px solid transparent;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .frame-option:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255,0,0,0.5);
+        }
+
+        .frame-option.selected {
+            border-color: #f00;
+            box-shadow: 0 0 20px rgba(255,0,0,0.7);
+        }
+
+        .frame-option img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .btn-continue {
+            width: 100%;
+            padding: 15px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.5vw;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-continue:hover {
+            background: #555;
+        }
+
+        .btn-continue:disabled {
+            background: #222;
+            cursor: not-allowed;
+        }
+
+        .btn-continue.active {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+            box-shadow: 0 0 15px rgba(255,0,0,0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img src="{{ url_for('static', filename='assets/logoprimaction.png') }}" alt="PRIMACTION Logo">
+    </div>
+
+    <div class="frame-selector">
+        <div class="selector-title">Pilih frame yang kamu suka</div>
+
+        <div class="frames-grid">
+            <div class="frame-option" data-frame="1">
+                <img src="{{ url_for('static', filename='assets/pilihframe1.png') }}" alt="Frame 1">
+            </div>
+            <div class="frame-option" data-frame="2">
+                <img src="{{ url_for('static', filename='assets/pilihframe2.png') }}" alt="Frame 2">
+            </div>
+            <div class="frame-option" data-frame="3">
+                <img src="{{ url_for('static', filename='assets/pilihframe3.png') }}" alt="Frame 3">
+            </div>
+            <div class="frame-option" data-frame="4">
+                <img src="{{ url_for('static', filename='assets/pilihframe4.png') }}" alt="Frame 4">
+            </div>
+        </div>
+
+        <button class="btn-continue" id="continueBtn" disabled>Lanjut Gan</button>
+    </div>
+
+    <script>
+        let selectedFrame = null;
+
+        // Ambil semua frame option
+        const frameOptions = document.querySelectorAll('.frame-option');
+        const continueBtn = document.getElementById('continueBtn');
+
+        frameOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Reset semua
+                frameOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Tandai yang dipilih
+                this.classList.add('selected');
+                selectedFrame = this.dataset.frame;
+
+                // Aktifkan tombol lanjut
+                continueBtn.disabled = false;
+                continueBtn.classList.add('active');
+            });
+        });
+
+        continueBtn.addEventListener('click', function() {
+            if (!selectedFrame) return;
+
+            // Simpan frame yang dipilih ke localStorage
+            localStorage.setItem('selectedFrame', selectedFrame);
+
+            // Redirect ke halaman utama (video stream)
+            window.location.href = '/dream_selection';
+        });
+    </script>
+
+</body>
+</html>

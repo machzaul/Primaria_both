@@ -1,0 +1,104 @@
+<!-- templates/loading_result.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Processing...</title>
+    <style>
+        body {
+            background: url('/assets/BG (2).png') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            position: relative;
+        }
+        .header {
+            position: absolute;
+            top: 3%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+        .header img {
+            height: 60px;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));
+        }
+        .loading-text {
+            font-size: 2vw;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .progress-bar-container {
+            width: 80%;
+            max-width: 400px;
+            height: 10px;
+            background: #700;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ddd, #fff);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+        .corner-top-right {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: url('/assets/corner_top_right.png') no-repeat;
+            background-size: contain;
+            z-index: 5;
+        }
+        .corner-bottom-left {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200px;
+            height: 200px;
+            background: url('/assets/corner_bottom_left.png') no-repeat;
+            background-size: contain;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="/assets/logoprimaction.png" alt="PRIMACTION">
+    </div>
+    <div class="corner-top-right"></div>
+    <div class="corner-bottom-left"></div>
+
+    <div class="loading-text">Sebentar ya, hasilnya OTW!</div>
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <script>
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 10;
+            document.getElementById('progressBar').style.width = progress + '%';
+            if (progress >= 100) {
+                clearInterval(interval);
+                setTimeout(() => {
+                    window.location.href = '/final_result';
+                }, 500);
+            }
+        }, 300);
+    </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>PRIMACTION - GOYANG SAMPE POL</title>
+    <!-- 🔗 Link ke file CSS terpisah -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="header">
+        <img src="{{ url_for('static', filename='assets/logoprimaction.png') }}" alt="PRIMACTION Logo">
+    </div>
+
+    <div class="title">
+        GOYANG<br>SAMPE POL
+        <div class="subtitle">MIMPI JADI POL</div>
+    </div>
+
+    <div class="frame-container">
+        <img src="{{ url_for('static', filename='assets/Frameawal.png') }}" class="frame-overlay" alt="Frame Overlay">
+        <img src="{{ url_for('video_feed') }}" class="video-stream" alt="Video Stream" id="videoStream">
+    </div>
+
+    <div class="footer">
+        <div class="tap-icon">👆</div>
+        <div class="start-instruction">Tap dimana aja buat mulai, Gan!</div>
+    </div>
+    <script>
+        document.body.addEventListener('click', function() {
+            window.location.href = '/form'; // Arahkan ke halaman form
+        });
+    </script>
+
+</body>
+</html>

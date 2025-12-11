@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Siap Joget! - PRIMACTION</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            background: url('/assets/BG (2).png') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            position: relative;
+        }
+
+        .header {
+            position: absolute;
+            top: 3%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .header img {
+            height: 80px;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            z-index: 20;
+        }
+
+        .loading-title {
+            font-size: 2.5vw;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .progress-bar-container {
+            width: 80%;
+            max-width: 400px;
+            height: 15px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ccc, #eee);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        /* Countdown Screen */
+        .countdown-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 30;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .countdown-number {
+            font-size: 10vw;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 10px rgba(255,255,255,0.8);
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        .countdown-text {
+            font-size: 3vw;
+            margin-top: 10px;
+            color: white;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+
+        /* Dance Screen */
+        .dance-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 25;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .timer-display {
+            position: absolute;
+            top: 5%;
+            font-size: 3vw;
+            color: white;
+            z-index: 30;
+        }
+
+        .video-stream {
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255,0,0,0.5);
+            object-fit: cover;
+            z-index: 20;
+        }
+
+        .meter-container {
+            position: absolute;
+            bottom: 5%;
+            width: 60%;
+            max-width: 300px;
+            z-index: 30;
+        }
+
+        .meter {
+            width: 100%;
+            height: 150px;
+            background: black;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .meter-bg {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, red 0%, yellow 50%, green 100%);
+            clip-path: polygon(0% 100%, 100% 100%, 100% 50%, 0% 50%);
+        }
+
+        .meter-pointer {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%) rotate(0deg);
+            width: 10px;
+            height: 30px;
+            background: white;
+            border-radius: 5px;
+            transition: transform 0.3s ease;
+        }
+
+        .instruction-box {
+            position: absolute;
+            bottom: 15%;
+            width: 80%;
+            max-width: 500px;
+            padding: 15px;
+            background: #000;
+            border: 2px solid #f00;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            z-index: 30;
+        }
+
+        .instruction-box::before {
+            content: "!";
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f00;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* Result Screen */
+        .result-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 40;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .result-title {
+            font-size: 4vw;
+            color: #ff0000;
+            text-shadow: 0 0 10px rgba(255,0,0,0.8);
+            margin-bottom: 10px;
+        }
+
+        .result-subtitle {
+            font-size: 2.5vw;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .btn-back {
+            padding: 15px 30px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.5vw;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-back:hover {
+            background: #c0392b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img src="/assets/logoprimaction.png" alt="PRIMACTION Logo">
+    </div>
+
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-title">Ayo siap-siap joget!<br>Mimpi nggak cuma dipikirin, tapi dirayain!</div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+    </div>
+
+    <!-- Countdown Screen -->
+    <div class="countdown-screen" id="countdownScreen">
+        <div class="countdown-number" id="countdownNumber">3</div>
+        <div class="countdown-text" id="countdownText">SIAP?</div>
+    </div>
+
+    <!-- Dance Screen -->
+    <div class="dance-screen" id="danceScreen">
+        <div class="timer-display" id="timerDisplay">10s</div>
+        <img src="{{ url_for('video_feed') }}" class="video-stream" alt="Video Stream" id="videoStream">
+
+        <div class="meter-container">
+            <div class="meter">
+                <div class="meter-bg"></div>
+                <div class="meter-pointer" id="meterPointer"></div>
+            </div>
+        </div>
+
+        <div class="instruction-box">
+            Joget seasyik mungkin dalam waktu<br><strong>10 detik sampai bar terisi penuh</strong>
+        </div>
+    </div>
+
+    <!-- Result Screen -->
+    <div class="result-screen" id="resultScreen">
+        <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%);">
+            <img src="/assets/logoprimaction.png" alt="PRIMACTION" style="height: 40px;">
+        </div>
+
+        <div style="font-size: 8vw; font-weight: bold; color: white; text-shadow: 0 0 10px rgba(255,255,255,0.8); margin-top: 10vh;">
+            MANTAP!!
+        </div>
+        <div style="font-size: 3vw; color: white; margin-top: 10px; text-shadow: 0 0 5px rgba(0,0,0,0.7);">
+            JOGET KAMU ASIK BANGET
+        </div>
+
+        <!-- Meter overlay di bawah -->
+        <div style="position: absolute; bottom: 5%; left: 50%; transform: translateX(-50%); width: 300px; height: 150px;">
+            <img src="/assets/meter_overlay.png" alt="Meter" style="width: 100%; height: 100%; object-fit: contain;">
+        </div>
+
+        <button class="btn-back" onclick="window.location.href='/form'">Kembali ke Awal</button>
+    </div>
+
+    <script>
+        // State
+        let isDancing = false;
+        let countdown = 3;
+        let danceTime = 10;
+        let meterValue = 0; // 0-100%
+        let shakeCount = 0;
+        let prevHipX = null;
+
+        // Ambil nama dan ktp6 dari URL (jika dari /dance_prep)
+        // Ambil SEMUA data dari localStorage
+        let nama = localStorage.getItem('userNama') || 'User';
+        let ktp6 = (localStorage.getItem('userKTP6') || '000000').padEnd(6, '0').substring(0, 6);
+        let dreamKey = localStorage.getItem('userDream') || 'bebas_cicilan';
+        let frame = localStorage.getItem('selectedFrame') || '1';
+
+        // Mapping mimpi ke teks
+        const dreamMap = {
+            'bebas_cicilan': 'BEBAS DARI CICILAN',
+            'rumah_impian': 'PUNYA RUMAH IMPAN',
+            'keliling_dunia': 'KELILING DUNIA',
+            'sukses_berbisnis': 'SUKSES BISNIS',
+            'karir_melesat': 'KARIR MELESAT',
+            'ketemu_jodoh': 'KETEMU JODOH',
+            'keluarga_bahagia': 'KELUARGA BAHAGIA'
+        };
+
+        const impian = dreamMap[dreamKey] || 'MIMPI JADI POL';
+
+        // Mapping frame ke file
+        const frameMap = {
+            '1': 'frame1.png',
+            '2': 'frame2.png',
+            '3': 'frame3.png',
+            '4': 'frame4.png'
+        };
+        const frame_choice = frameMap[frame] || 'frame1.png';
+
+        // Elements
+        const loadingScreen = document.getElementById('loadingScreen');
+        const progressBar = document.getElementById('progressBar');
+        const countdownScreen = document.getElementById('countdownScreen');
+        const countdownNumber = document.getElementById('countdownNumber');
+        const countdownText = document.getElementById('countdownText');
+        const danceScreen = document.getElementById('danceScreen');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const meterPointer = document.getElementById('meterPointer');
+        const resultScreen = document.getElementById('resultScreen');
+        const videoStream = document.getElementById('videoStream');
+
+        // Start Loading
+        startLoading();
+
+        function startLoading() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 5;
+                progressBar.style.width = progress + '%';
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(startCountdown, 500);
+                }
+            }, 100);
+        }
+
+        function startCountdown() {
+            loadingScreen.style.display = 'none';
+            countdownScreen.style.display = 'flex';
+
+            // Ganti background dengan video stream saat countdown
+            videoStream.src = "{{ url_for('video_feed') }}";
+            videoStream.style.display = 'block';
+
+            const countInterval = setInterval(() => {
+                if (countdown > 0) {
+                    countdownNumber.textContent = countdown;
+                    switch(countdown) {
+                        case 3:
+                            countdownText.textContent = "SIAP?";
+                            break;
+                        case 2:
+                            countdownText.textContent = "OKE!";
+                            break;
+                        case 1:
+                            countdownText.textContent = "GAS!";
+                            break;
+                    }
+                    countdown--;
+                } else {
+                    clearInterval(countInterval);
+                    startDance();
+                }
+            }, 1000);
+        }
+
+        function startDance() {
+            // Reset shake count di backend
+            fetch('/reset_shake_count')
+                .then(response => response.json())
+                .then(() => {
+                    // Mulai rekaman
+                    return fetch('/start_recording', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nama, ktp6, impian, frame_choice })
+                    });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log("Recording started:", data.filename);
+
+                        // Tampilkan layar tarian
+                        countdownScreen.style.display = 'none';
+                        danceScreen.style.display = 'flex';
+                        isDancing = true;
+                        meterValue = 0;
+                        shakeCount = 0;
+                        prevHipX = null;
+
+                        // Update UI meter
+                        updateMeter(0);
+
+                        // Start timer
+                        const timerInterval = setInterval(() => {
+                            danceTime--;
+                            timerDisplay.textContent = danceTime + 's';
+                            if (danceTime <= 0) {
+                                clearInterval(timerInterval);
+                                showResult();
+                            }
+                        }, 1000);
+
+                    } else {
+                        alert("Gagal memulai rekaman.");
+                    }
+                })
+                .catch(err => {
+                    console.error("Error during setup:", err);
+                    alert("Terjadi kesalahan. Silakan coba lagi.");
+                });
+        }
+
+        function updateMeter(value) {
+            const angle = -45 + (value / 100) * 90;
+            meterPointer.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+        }
+
+        function showResult() {
+            isDancing = false;
+            danceScreen.style.display = 'none';
+
+            // Hentikan rekaman
+            fetch('/stop_recording')
+                .then(() => {
+                    // Tampilkan loading screen dulu
+                    window.location.href = '/loading_result';
+                })
+                .catch(console.error);
+        }
+
+        // Polling shake count selama tarian
+        setInterval(async () => {
+            if (!isDancing) return;
+            try {
+                const res = await fetch('/get_shake_count');
+                const data = await res.json();
+                shakeCount = data.shake_count;
+                meterValue = Math.min(100, shakeCount * 5); // 1 shake = 5%
+                updateMeter(meterValue);
+            } catch(e) {
+                console.log("Error fetching shake count");
+            }
+        }, 500);
+    </script>
+
+</body>
+</html>
