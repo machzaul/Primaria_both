@@ -6,6 +6,7 @@ import numpy as np
 import os
 import time
 import json
+import threading
 
 app = Flask(__name__)
 
@@ -28,6 +29,7 @@ out = None
 video_filename = ""
 last_frame = None
 user_data = {}
+processing_status = {"status": "idle", "progress": 0}  # Status processing
 
 def detect_shake(hip_x, threshold=0.02):
     global prev_hip_x, current_shake_count
@@ -47,12 +49,18 @@ def create_final_video(raw_video_path, output_path, frame_overlay_path, impian_t
     """
     Buat video final 9:16 dengan frame overlay dan teks impian.
     """
+    global processing_status
+    processing_status["status"] = "processing"
+    processing_status["progress"] = 0
+    
     cap = cv2.VideoCapture(raw_video_path)
     if not cap.isOpened():
         print("Error: Tidak bisa membuka video mentah.")
+        processing_status["status"] = "error"
         return False
 
     fps = int(cap.get(cv2.CAP_PROP_FPS)) or 20
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     fourcc = cv2.VideoWriter_fourcc(*'avc1')
     out_writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
@@ -113,11 +121,40 @@ def create_final_video(raw_video_path, output_path, frame_overlay_path, impian_t
 
         out_writer.write(resized)
         frame_count += 1
+        
+        # Update progress
+        if total_frames > 0:
+            processing_status["progress"] = int((frame_count / total_frames) * 100)
 
     cap.release()
     out_writer.release()
     print(f"Video final dibuat: {frame_count} frame → {output_path}")
+    processing_status["status"] = "completed"
+    processing_status["progress"] = 100
     return True
+
+def process_video_async(raw_video, final_video, frame_overlay, impian):
+    """Function untuk processing video di background thread"""
+    success = create_final_video(
+        raw_video_path=raw_video,
+        output_path=final_video,
+        frame_overlay_path=frame_overlay,
+        impian_text=impian.replace(' ', '\n')
+    )
+    
+    if success:
+        # Buat thumbnail
+        nama = user_data.get('nama', 'user')
+        ktp6 = user_data.get('ktp6', '000000')
+        cap = cv2.VideoCapture(final_video)
+        success, thumb = cap.read()
+        if success:
+            cv2.imwrite(f"results/{nama}_{ktp6}_thumbnail.jpg", thumb)
+        cap.release()
+
+        # Hapus raw video
+        if os.path.exists(raw_video):
+            os.remove(raw_video)
 
 def gen_frames():
     global current_shake_count, prev_hip_x, recording, out, last_frame
@@ -184,7 +221,7 @@ def reset_shake_count():
 
 @app.route('/start_recording', methods=['POST'])
 def start_recording():
-    global recording, out, video_filename, user_data
+    global recording, out, video_filename, user_data, processing_status
     data = request.get_json()
     nama = data.get('nama', 'user').replace(" ", "_")
     ktp6 = data.get('ktp6', '000000')[:6]
@@ -197,6 +234,9 @@ def start_recording():
         "impian": impian.upper(),
         "frame_choice": frame_choice
     }
+    
+    # Reset processing status
+    processing_status = {"status": "idle", "progress": 0}
 
     raw_video = f"hasilnari/{nama}_{ktp6}_raw.mp4"
     fourcc = cv2.VideoWriter_fourcc(*'VP80')
@@ -243,26 +283,21 @@ def stop_recording():
     if not os.path.exists(raw_video):
         return jsonify({"status": "error", "message": "Raw video not found"})
 
-    success = create_final_video(
-        raw_video_path=raw_video,
-        output_path=final_video,
-        frame_overlay_path=frame_overlay,
-        impian_text=impian.replace(' ', '\n')
+    # Mulai processing di background thread
+    thread = threading.Thread(
+        target=process_video_async,
+        args=(raw_video, final_video, frame_overlay, impian)
     )
+    thread.daemon = True
+    thread.start()
 
-    if success:
-        cap = cv2.VideoCapture(final_video)
-        success, thumb = cap.read()
-        if success:
-            cv2.imwrite(f"results/{nama}_{ktp6}_thumbnail.jpg", thumb)
-        cap.release()
+    return jsonify({"status": "success", "message": "Processing started"})
 
-        if os.path.exists(raw_video):
-            os.remove(raw_video)
-
-        return jsonify({"status": "success", "final_video": final_video})
-    else:
-        return jsonify({"status": "error", "message": "Gagal membuat video final"})
+@app.route('/check_processing')
+def check_processing():
+    """Endpoint untuk mengecek status processing"""
+    global processing_status
+    return jsonify(processing_status)
 
 @app.route('/assets/<path:filename>')
 def serve_assets(filename):
@@ -274,6 +309,9 @@ def serve_results(filename):
 
 @app.route('/form')
 def form():
+    global processing_status
+    # Reset processing status saat kembali ke form
+    processing_status = {"status": "idle", "progress": 0}
     return render_template('form.html')
 
 @app.route('/select_frame')
@@ -294,7 +332,11 @@ def loading_result():
 
 @app.route('/final_result')
 def final_result():
-    global user_data
+    global user_data, processing_status
+    
+    # Reset processing status agar tidak loop
+    processing_status = {"status": "idle", "progress": 0}
+    
     if not user_data:
         user_data = {
             "nama": "User",

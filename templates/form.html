@@ -6,165 +6,358 @@
     <title>Isi Data - PRIMACTION</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
+        body {
+            background: url('/assets/BG (2).png') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .header {
+            position: absolute;
+            top: 3%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .header img {
+            height: 80px;
+            scale: 1.9;
+        }
+
+        .corner-top-right {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 250px;
+            height: 250px;
+            background: linear-gradient(135deg, transparent 50%, rgba(255,0,0,0.3) 50%);
+            z-index: 1;
+        }
+
+        .corner-bottom-left {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 250px;
+            height: 250px;
+            background: linear-gradient(-45deg, transparent 50%, rgba(255,0,0,0.3) 50%);
+            z-index: 1;
+        }
+
+        /* Container utama */
         .form-container {
             position: relative;
-            width: 70%;
-            max-width: 500px;
-            margin: 5% auto;
-            padding: 30px;
-            background: rgba(0,0,0,0.7);
+            width: 85%;
+            max-width: 600px;
+            margin: 30% auto 0;
+            padding: 40px 35px;
             border-radius: 15px;
-            box-shadow: 0 0 20px rgba(255,0,0,0.3);
             z-index: 5;
+            display: flex;
+            flex-direction: column;
+            gap: 350px;
         }
 
         .form-title {
             text-align: center;
-            font-size: 2.5vw;
+            font-size: 1.8rem;
             margin-bottom: 20px;
             color: white;
+            font-weight: 300;
+        }
+
+        .input-section,
+        .button-section {
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
 
         label {
             display: block;
-            margin-bottom: 8px;
-            font-size: 1.2vw;
+            margin-bottom: 10px;
+            font-size: 1rem;
             color: #ddd;
+            font-weight: 400;
         }
 
-        input, select {
-            width: 100%;
-            padding: 12px;
-            background: #111;
-            border: 1px solid #444;
-            color: white;
-            border-radius: 8px;
-            font-size: 1.2vw;
-            transition: border 0.3s;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: #f00;
-            box-shadow: 0 0 10px rgba(255,0,0,0.2);
-        }
-
-        input.valid {
-            border-color: #0f0;
-            background: #030;
-        }
-
-        input.invalid {
-            border-color: #f00;
-            background: #300;
-        }
-
-        .checkmark {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: white;
-            font-size: 1.5vw;
-            display: none;
-        }
-
-        .input-with-check {
+        .input-wrapper {
             position: relative;
         }
 
-        .btn-choice {
-            display: inline-block;
-            width: 48%;
-            padding: 12px;
-            background: #222;
+        input {
+            width: 100%;
+            padding: 16px 50px 16px 16px;
+            background: rgba(20,20,20,0.8);
+            border: 1.5px solid #e5e5e5;
             color: white;
-            border: 1px solid #444;
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            font-size: 1.2vw;
-            margin-right: 4%;
-            transition: all 0.3s;
+            border-radius: 2px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
         }
 
-        .btn-choice:hover {
-            background: #444;
+        input::placeholder {
+            color: #555;
         }
 
-        .btn-choice.selected {
-            background: linear-gradient(90deg, #ccc, #eee);
-            color: #000;
-            border-color: #f00;
-            box-shadow: 0 0 10px rgba(255,0,0,0.5);
+        input:focus {
+            outline: none;
+            border-color: #666;
+            background: rgba(25,25,25,0.9);
+        }
+
+        input.valid {
+            background: linear-gradient(90deg, #111111 69%, #00DB0F 100%);
+            border: 2px solid #03B010;
+        }
+
+        input.invalid {
+            background: linear-gradient(90deg, #111111 69%, #CD0D12 100%);
+            border: 2px solid #BF0D11;
+        }
+
+        .status-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            display: none;
+        }
+
+        .status-icon.valid {
+            color: #00ff00;
+            display: block;
+        }
+
+        .status-icon.invalid {
+            color: #ff0000;
+            display: block;
+        }
+
+        .error-message {
+            display: none;
+            color: #ff4444;
+            font-size: 0.9rem;
+            margin-top: 8px;
         }
 
         .age-warning {
-            background: #500;
+            background: rgba(139,0,0,0.8);
             color: white;
-            padding: 15px;
-            border-radius: 8px;
+            padding: 20px;
+            border-radius: 10px;
             margin-top: 15px;
             display: none;
-            font-size: 1vw;
-            line-height: 1.4;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            border: 1px solid rgba(255,0,0,0.5);
         }
 
+        .age-warning strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.05rem;
+        }
+
+        /* === ELEMEN DINAMIS: CADANGKAN RUANG DENGAN TINGGI TETAP === */
+        #smokerOptions,
         .brand-selector {
-            display: none;
-            margin-top: 15px;
+            /* Cadangkan ruang sejak awal */
+            height: 60px;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #smokerOptions.visible,
+        .brand-selector.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .choice-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            height: 100%;
+        }
+
+        .btn-choice {
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #999;
+            border: 3px solid #333;
+            border-radius: 2px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-choice:hover {
+            background: rgba(40,40,40,0.9);
+            border-color: #555;
+        }
+
+        .btn-choice.selected {
+            background: linear-gradient(135deg, #C3C3C3 21%, #FFFFFF 55%, #999999 100%);
+            color: #000;
+            border: 4px solid #d32f2f;
+            box-shadow: 0 0 8px rgba(200, 0, 0, 0.4);
+            font-weight: 600;
+        }
+        .brand-selector {
+        /* Cadangkan ruang */
+        height: 60px;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+
+        /* ✅ Tambahkan jarak dari elemen di atasnya (smoker options) */
+        margin-top: 25px; /* ← Sesuaikan angka ini: 20px, 30px, dll */
+    }
+
+        .brand-selector select {
+            width: 100%;
+            padding: 16px;
+            background: rgba(20,20,20,0.8);
+            border: 2px solid #333;
+            color: white;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #666;
+            background: rgba(25,25,25,0.9);
+        }
+
+        select option {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        /* === BUTTON SECTION === */
+        .button-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         .checkbox-container {
-            margin: 20px 0;
+            /* Cadangkan ruang */
+            height: 70px;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
             display: flex;
             align-items: flex-start;
+            gap: 12px;
+        }
+
+        .checkbox-container.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
         }
 
         .checkbox-container input[type="checkbox"] {
-            margin-right: 10px;
+            margin-top: 3px;
             width: 20px;
             height: 20px;
+            cursor: pointer;
+            flex-shrink: 0;
         }
 
         .checkbox-label {
-            font-size: 1vw;
-            color: #ddd;
+            font-size: 0.9rem;
+            color: #ccc;
+            line-height: 1.5;
         }
 
         .checkbox-label a {
-            color: #ff0000;
+            color: #ff4444;
             text-decoration: underline;
         }
 
         .btn-start {
             width: 100%;
-            padding: 15px;
-            background: #333;
-            color: white;
+            padding: 18px;
+            background: #2a2a2a;
+            color: #666;
             border: none;
-            border-radius: 8px;
-            font-size: 1.5vw;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .btn-start:hover {
-            background: #555;
+            border-radius: 2px;
+            font-size: 1.3rem;
+            cursor: not-allowed;
+            transition: all 0.3s ease;
+            font-weight: 700;
+            box-sizing: border-box;
         }
 
         .btn-start:disabled {
-            background: #222;
-            cursor: not-allowed;
+            background: #2a2a2a;
+            color: #666;
         }
 
         .btn-start.active {
-            background: linear-gradient(90deg, #e74c3c, #c0392b);
-            box-shadow: 0 0 15px rgba(255,0,0,0.6);
+            background: linear-gradient(90deg, #FE0E14 0%, #98080C 100%);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(254, 14, 20, 0.4);
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .form-container {
+                width: 90%;
+                padding: 30px 20px;
+                margin: 25% auto 0;
+                gap: 70px;
+            }
+            
+            .form-title {
+                font-size: 1.5rem;
+            }
+            
+            input, select {
+                font-size: 1rem;
+            }
+
+            #smokerOptions,
+            .brand-selector {
+                height: 55px;
+            }
+
+            .checkbox-container {
+                height: 65px;
+            }
         }
     </style>
 </head>
@@ -175,47 +368,56 @@
     </div>
 
     <div class="form-container">
-        <div class="form-title">Isi data dulu sebelum mulai</div>
 
-        <form id="biodataForm">
-            <div class="form-group">
-                <label for="nama">Nama Lengkap</label>
-                <input type="text" id="nama" placeholder="Masukkan Nama Lengkap Sesuai KTP" required>
-            </div>
-
-            <div class="form-group">
-                <label for="ktp6">6 Digit Terakhir KTP</label>
-                <div class="input-with-check">
-                    <input type="text" id="ktp6" maxlength="6" placeholder="Masukkan 6 Digit Terakhir No. KTP" required>
-                    <span class="checkmark" id="ktpCheck">✓</span>
+        <!-- INPUT SECTION -->
+        <div class="input-section">
+            <div class="form-title">Isi data dulu sebelum mulai</div>
+            <form id="biodataForm">
+                <!-- Nama Lengkap -->
+                <div class="form-group">
+                    <label for="nama">Nama Lengkap</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="nama" placeholder="Masukkan Nama Lengkap Sesuai KTP" required>
+                    </div>
                 </div>
-                <div class="error-message" id="ktpError"></div>
-                <div class="age-warning" id="ageWarning"></div>
-            </div>
 
-            <!-- Pilihan Perokok/Bukan Perokok -->
-            <div id="smokerOptions" style="display: none; margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; gap: 10px;">
-                    <div class="btn-choice" id="btnNonSmoker">Bukan Perokok</div>
-                    <div class="btn-choice" id="btnSmoker">Perokok</div>
+                <!-- 6 Digit KTP -->
+                <div class="form-group">
+                    <label for="ktp6">6 Digit Terakhir KTP</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="ktp6" maxlength="6" placeholder="Masukkan 6 Digit Terakhir No. KTP" required>
+                        <span class="status-icon" id="ktpStatus"></span>
+                    </div>
+                    <div class="error-message" id="ktpError"></div>
+                    <div class="age-warning" id="ageWarning"></div>
                 </div>
-            </div>
 
-            <!-- Dropdown Brand (hanya muncul jika pilih Perokok) -->
-            <div class="brand-selector" id="brandSelector">
-                <label for="brand">Pilih Brand Rokokmu</label>
-                <select id="brand" required>
-                    <option value="" disabled selected>Pilih Brand Rokokmu</option>
-                    <option value="amild">Amild 16</option>
-                    <option value="djarum">Djarum Super</option>
-                    <option value="gudanggaram">Gudang Garam Filter</option>
-                    <option value="sampoerna">Sampoerna Mild</option>
-                    <option value="lucky">Lucky Strike</option>
-                </select>
-            </div>
+                <!-- Pilihan Perokok/Bukan Perokok -->
+                <div id="smokerOptions">
+                    <div class="choice-buttons">
+                        <div class="btn-choice" id="btnNonSmoker">Bukan Perokok</div>
+                        <div class="btn-choice" id="btnSmoker">Perokok</div>
+                    </div>
+                </div>
 
-            <!-- Checkbox Persyaratan -->
-            <div class="checkbox-container" id="termsCheckbox" style="display: none;">
+                <!-- Dropdown Brand -->
+                <div class="brand-selector" id="brandSelector">
+                    <label for="brand">Pilih Brand Rokokmu</label>
+                    <select id="brand" required>
+                        <option value="" disabled selected>Pilih Brand Rokokmu</option>
+                        <option value="amild">Amild 16</option>
+                        <option value="djarum">Djarum Super</option>
+                        <option value="gudanggaram">Gudang Garam Filter</option>
+                        <option value="sampoerna">Sampoerna Mild</option>
+                        <option value="lucky">Lucky Strike</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+
+        <!-- BUTTON SECTION -->
+        <div class="button-section">
+            <div class="checkbox-container" id="termsCheckbox">
                 <input type="checkbox" id="agreeTerms">
                 <label for="agreeTerms" class="checkbox-label">
                     Saya adalah perokok dewasa berumur 21 tahun ke atas dan saya setuju dengan 
@@ -223,9 +425,8 @@
                 </label>
             </div>
 
-            <!-- Tombol Mulai -->
-            <button type="submit" class="btn-start" id="startBtn" disabled>Mulai</button>
-        </form>
+            <button type="button" class="btn-start" id="startBtn" disabled>Mulai</button>
+        </div>
     </div>
 
     <script>
@@ -234,6 +435,7 @@
         let isBrandSelected = false;
         let isTermsAgreed = false;
 
+        // Event Listeners (semua elemen tetap di DOM, jadi listener tetap jalan)
         document.getElementById('ktp6').addEventListener('input', validateKTP);
         document.getElementById('btnNonSmoker').addEventListener('click', selectNonSmoker);
         document.getElementById('btnSmoker').addEventListener('click', selectSmoker);
@@ -243,31 +445,35 @@
         function validateKTP() {
             const ktp6 = document.getElementById('ktp6').value.trim();
             const inputField = document.getElementById('ktp6');
-            const checkmark = document.getElementById('ktpCheck');
+            const statusIcon = document.getElementById('ktpStatus');
             const errorDiv = document.getElementById('ktpError');
             const ageWarning = document.getElementById('ageWarning');
-            const smokerOptions = document.getElementById('smokerOptions');
 
-            // Reset
+            // Reset visual
             inputField.classList.remove('valid', 'invalid');
-            checkmark.style.display = 'none';
+            statusIcon.classList.remove('valid', 'invalid');
+            statusIcon.style.display = 'none';
+            statusIcon.textContent = '';
             errorDiv.style.display = 'none';
             ageWarning.style.display = 'none';
-            smokerOptions.style.display = 'none';
-            document.getElementById('brandSelector').style.display = 'none';
-            document.getElementById('termsCheckbox').style.display = 'none';
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('startBtn').classList.remove('active');
 
+            // Reset logika
             isAgeValid = false;
             isSmokerSelected = false;
             isBrandSelected = false;
             isTermsAgreed = false;
 
+            // Sembunyikan semua elemen dinamis
+            document.getElementById('smokerOptions').classList.remove('visible');
+            document.getElementById('brandSelector').classList.remove('visible');
+            document.getElementById('termsCheckbox').classList.remove('visible');
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('startBtn').classList.remove('active');
+
             if (!ktp6) return;
 
             if (ktp6.length !== 6 || !/^\d{6}$/.test(ktp6)) {
-                showError('Masukkan 6 digit angka yang valid.');
+                showInvalid('Masukkan 6 digit angka yang valid.');
                 return;
             }
 
@@ -276,7 +482,7 @@
             const year = parseInt(ktp6.substring(4,6));
 
             if (day < 1 || day > 31 || month < 1 || month > 12) {
-                showError('Format tanggal tidak valid.');
+                showInvalid('Format tanggal tidak valid.');
                 return;
             }
 
@@ -289,30 +495,44 @@
                 return;
             }
 
-            // Valid! Tampilkan centang hijau
+            // Valid!
             inputField.classList.add('valid');
-            checkmark.style.display = 'block';
+            statusIcon.classList.add('valid');
+            statusIcon.textContent = '✓';
+            statusIcon.style.display = 'block';
             isAgeValid = true;
 
             // Tampilkan pilihan perokok
-            smokerOptions.style.display = 'block';
+            document.getElementById('smokerOptions').classList.add('visible');
         }
 
-        function showError(msg) {
+        function showInvalid(msg) {
             const inputField = document.getElementById('ktp6');
+            const statusIcon = document.getElementById('ktpStatus');
+            const errorDiv = document.getElementById('ktpError');
+
             inputField.classList.add('invalid');
-            document.getElementById('ktpError').textContent = msg;
-            document.getElementById('ktpError').style.display = 'block';
+            statusIcon.classList.add('invalid');
+            statusIcon.textContent = '✕';
+            statusIcon.style.display = 'block';
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
         }
 
         function showAgeWarning(age) {
             const inputField = document.getElementById('ktp6');
-            inputField.classList.add('invalid');
+            const statusIcon = document.getElementById('ktpStatus');
             const warning = document.getElementById('ageWarning');
+
+            inputField.classList.add('invalid');
+            statusIcon.classList.add('invalid');
+            statusIcon.textContent = '✕';
+            statusIcon.style.display = 'block';
+
             warning.innerHTML = `
-                Usia kamu dibawah 21 Tahun<br><br>
+                <strong>Usia kamu di bawah 21 Tahun</strong>
                 Maaf, kamu belum bisa melanjutkan karena bukan perokok. 
-                Engagement ini hanya ditujukan untuk orang-orang 21 tahun. Terima kasih.
+                Engagement ini hanya ditujukan untuk orang-orang 21 tahun ke atas. Terima kasih.
             `;
             warning.style.display = 'block';
         }
@@ -322,15 +542,17 @@
             document.getElementById('btnNonSmoker').classList.add('selected');
             isSmokerSelected = false;
 
-            // Tampilkan peringatan
-            document.getElementById('ageWarning').innerHTML = `
-                Kamu bukan perokok<br><br>
-                Maaf, kamu belum bisa melanjutkan karena bukan perokok. 
-                Engagement ini hanya ditujukan untuk orang-orang 21 tahun. Terima kasih.
-            `;
-            document.getElementById('ageWarning').style.display = 'block';
+            document.getElementById('brandSelector').classList.remove('visible');
+            document.getElementById('termsCheckbox').classList.remove('visible');
 
-            // Nonaktifkan tombol mulai
+            const warning = document.getElementById('ageWarning');
+            warning.innerHTML = `
+                <strong>Kamu bukan perokok</strong>
+                Maaf, kamu belum bisa melanjutkan karena bukan perokok. 
+                Engagement ini hanya ditujukan untuk perokok dewasa 21 tahun ke atas. Terima kasih.
+            `;
+            warning.style.display = 'block';
+
             document.getElementById('startBtn').disabled = true;
             document.getElementById('startBtn').classList.remove('active');
         }
@@ -340,18 +562,16 @@
             document.getElementById('btnSmoker').classList.add('selected');
             isSmokerSelected = true;
 
-            // Sembunyikan peringatan
             document.getElementById('ageWarning').style.display = 'none';
+            document.getElementById('brandSelector').classList.add('visible');
+            document.getElementById('termsCheckbox').classList.add('visible');
 
-            // Tampilkan brand selector dan terms
-            document.getElementById('brandSelector').style.display = 'block';
-            document.getElementById('termsCheckbox').style.display = 'block';
-
-            // Reset selection
             document.getElementById('brand').value = '';
             document.getElementById('agreeTerms').checked = false;
             isBrandSelected = false;
             isTermsAgreed = false;
+            
+            updateStartButton();
         }
 
         function resetSmokerButtons() {
@@ -381,8 +601,8 @@
             }
         }
 
-        document.getElementById('biodataForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        document.getElementById('startBtn').addEventListener('click', function(e) {
+            // hapus e.preventDefault() karena bukan form submit
 
             if (!isAgeValid || !isSmokerSelected || !isBrandSelected || !isTermsAgreed) {
                 alert("Silakan lengkapi semua syarat terlebih dahulu.");
@@ -391,19 +611,17 @@
 
             const nama = document.getElementById('nama').value.trim();
             const ktp6 = document.getElementById('ktp6').value.trim();
-            const isSmoker = isSmokerSelected;
             const brand = document.getElementById('brand').value;
 
-            // Simpan ke localStorage (untuk demo)
             localStorage.setItem('userNama', nama);
             localStorage.setItem('userKTP6', ktp6);
-            localStorage.setItem('userIsSmoker', isSmoker);
+            localStorage.setItem('userIsSmoker', 'true');
             localStorage.setItem('userBrand', brand);
 
-            // Redirect ke halaman pilih frame
             window.location.href = '/select_frame';
         });
-    </script>
+        
+ </script>
 
 </body>
 </html>

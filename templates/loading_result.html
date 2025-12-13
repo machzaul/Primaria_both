@@ -1,4 +1,3 @@
-<!-- templates/loading_result.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -49,9 +48,14 @@
             height: 100%;
             background: linear-gradient(90deg, #ddd, #fff);
             width: 0%;
-            transition: width 0.5s ease;
+            transition: width 0.3s ease;
             border-radius: 5px;
             box-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+        .progress-text {
+            font-size: 1.5vw;
+            margin-top: 10px;
+            color: #ccc;
         }
         .corner-top-right {
             position: absolute;
@@ -86,19 +90,80 @@
     <div class="progress-bar-container">
         <div class="progress-bar" id="progressBar"></div>
     </div>
+    <div class="progress-text" id="progressText">0%</div>
 
     <script>
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += 10;
-            document.getElementById('progressBar').style.width = progress + '%';
-            if (progress >= 100) {
-                clearInterval(interval);
-                setTimeout(() => {
-                    window.location.href = '/final_result';
-                }, 500);
+        let checkInterval;
+        let fallbackTimeout;
+        let maxWaitTime = 60000; // 60 detik max
+        let hasRedirected = false; // Flag untuk mencegah multiple redirect
+
+        function checkProcessing() {
+            if (hasRedirected) return; // Jangan lakukan apa-apa jika sudah redirect
+            
+            fetch('/check_processing')
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Processing status:", data);
+                    
+                    if (hasRedirected) return; // Double check sebelum update UI
+                    
+                    const progressBar = document.getElementById('progressBar');
+                    const progressText = document.getElementById('progressText');
+                    
+                    if (data.status === 'processing') {
+                        // Update progress bar dengan data real dari backend
+                        progressBar.style.width = data.progress + '%';
+                        progressText.textContent = data.progress + '%';
+                    } else if (data.status === 'completed') {
+                        // Processing selesai
+                        hasRedirected = true; // Set flag
+                        progressBar.style.width = '100%';
+                        progressText.textContent = '100%';
+                        
+                        // Stop semua interval dan timeout
+                        clearInterval(checkInterval);
+                        clearTimeout(fallbackTimeout);
+                        
+                        // Redirect setelah delay singkat
+                        setTimeout(() => {
+                            window.location.replace('/final_result'); // Gunakan replace agar tidak bisa back
+                        }, 800);
+                    } else if (data.status === 'error') {
+                        // Error terjadi
+                        hasRedirected = true; // Set flag
+                        clearInterval(checkInterval);
+                        clearTimeout(fallbackTimeout);
+                        alert('Terjadi kesalahan saat memproses video');
+                        window.location.replace('/form');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking processing:', error);
+                });
+        }
+
+        // Mulai pengecekan setiap 500ms
+        checkInterval = setInterval(checkProcessing, 500);
+
+        // Fallback: jika dalam 60 detik masih belum selesai, redirect paksa
+        fallbackTimeout = setTimeout(() => {
+            if (!hasRedirected) {
+                hasRedirected = true;
+                clearInterval(checkInterval);
+                console.log("Timeout reached, forcing redirect");
+                window.location.replace('/final_result');
             }
-        }, 300);
+        }, maxWaitTime);
+
+        // Panggil sekali saat load
+        checkProcessing();
+        
+        // Cleanup saat page unload
+        window.addEventListener('beforeunload', function() {
+            clearInterval(checkInterval);
+            clearTimeout(fallbackTimeout);
+        });
     </script>
 </body>
 </html>

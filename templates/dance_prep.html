@@ -7,8 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         body {
-            background: url('/assets/BG (2).png') no-repeat center center fixed;
-            background-size: cover;
+            background: #000;
             height: 100vh;
             width: 100vw;
             overflow: hidden;
@@ -19,6 +18,19 @@
             color: white;
             font-family: 'Arial', sans-serif;
             position: relative;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Video Stream sebagai Background Penuh */
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 1;
         }
 
         .header {
@@ -43,6 +55,9 @@
             text-align: center;
             padding: 20px;
             z-index: 20;
+            background: rgba(0,0,0,0.7);
+            border-radius: 20px;
+            max-width: 80%;
         }
 
         .loading-title {
@@ -72,12 +87,12 @@
         /* Countdown Screen */
         .countdown-screen {
             display: none;
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.5);
             z-index: 30;
             flex-direction: column;
             justify-content: center;
@@ -89,7 +104,7 @@
             font-size: 10vw;
             font-weight: bold;
             color: white;
-            text-shadow: 0 0 10px rgba(255,255,255,0.8);
+            text-shadow: 0 0 20px rgba(255,255,255,0.9);
             animation: pulse 0.5s infinite alternate;
         }
 
@@ -97,6 +112,7 @@
             font-size: 3vw;
             margin-top: 10px;
             color: white;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
 
         @keyframes pulse {
@@ -107,7 +123,7 @@
         /* Dance Screen */
         .dance-screen {
             display: none;
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
@@ -120,20 +136,11 @@
 
         .timer-display {
             position: absolute;
-            top: 5%;
+            top: 12%;
             font-size: 3vw;
             color: white;
             z-index: 30;
-        }
-
-        .video-stream {
-            width: 100%;
-            height: auto;
-            max-height: 70vh;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(255,0,0,0.5);
-            object-fit: cover;
-            z-index: 20;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
 
         .meter-container {
@@ -175,11 +182,11 @@
 
         .instruction-box {
             position: absolute;
-            bottom: 15%;
+            bottom: 18%;
             width: 80%;
             max-width: 500px;
             padding: 15px;
-            background: #000;
+            background: rgba(0,0,0,0.8);
             border: 2px solid #f00;
             border-radius: 10px;
             color: white;
@@ -203,54 +210,12 @@
             justify-content: center;
             font-weight: bold;
         }
-
-        /* Result Screen */
-        .result-screen {
-            display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 40;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .result-title {
-            font-size: 4vw;
-            color: #ff0000;
-            text-shadow: 0 0 10px rgba(255,0,0,0.8);
-            margin-bottom: 10px;
-        }
-
-        .result-subtitle {
-            font-size: 2.5vw;
-            color: white;
-            margin-bottom: 30px;
-        }
-
-        .btn-back {
-            padding: 15px 30px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.5vw;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .btn-back:hover {
-            background: #c0392b;
-        }
     </style>
 </head>
 <body>
+
+    <!-- Video Stream sebagai Background -->
+    <img src="{{ url_for('video_feed') }}" class="video-background" alt="Video Stream" id="videoBackground">
 
     <div class="header">
         <img src="/assets/logoprimaction.png" alt="PRIMACTION Logo">
@@ -273,7 +238,6 @@
     <!-- Dance Screen -->
     <div class="dance-screen" id="danceScreen">
         <div class="timer-display" id="timerDisplay">10s</div>
-        <img src="{{ url_for('video_feed') }}" class="video-stream" alt="Video Stream" id="videoStream">
 
         <div class="meter-container">
             <div class="meter">
@@ -287,27 +251,6 @@
         </div>
     </div>
 
-    <!-- Result Screen -->
-    <div class="result-screen" id="resultScreen">
-        <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%);">
-            <img src="/assets/logoprimaction.png" alt="PRIMACTION" style="height: 40px;">
-        </div>
-
-        <div style="font-size: 8vw; font-weight: bold; color: white; text-shadow: 0 0 10px rgba(255,255,255,0.8); margin-top: 10vh;">
-            MANTAP!!
-        </div>
-        <div style="font-size: 3vw; color: white; margin-top: 10px; text-shadow: 0 0 5px rgba(0,0,0,0.7);">
-            JOGET KAMU ASIK BANGET
-        </div>
-
-        <!-- Meter overlay di bawah -->
-        <div style="position: absolute; bottom: 5%; left: 50%; transform: translateX(-50%); width: 300px; height: 150px;">
-            <img src="/assets/meter_overlay.png" alt="Meter" style="width: 100%; height: 100%; object-fit: contain;">
-        </div>
-
-        <button class="btn-back" onclick="window.location.href='/form'">Kembali ke Awal</button>
-    </div>
-
     <script>
         // State
         let isDancing = false;
@@ -317,8 +260,7 @@
         let shakeCount = 0;
         let prevHipX = null;
 
-        // Ambil nama dan ktp6 dari URL (jika dari /dance_prep)
-        // Ambil SEMUA data dari localStorage
+        // Ambil data dari localStorage
         let nama = localStorage.getItem('userNama') || 'User';
         let ktp6 = (localStorage.getItem('userKTP6') || '000000').padEnd(6, '0').substring(0, 6);
         let dreamKey = localStorage.getItem('userDream') || 'bebas_cicilan';
@@ -355,8 +297,7 @@
         const danceScreen = document.getElementById('danceScreen');
         const timerDisplay = document.getElementById('timerDisplay');
         const meterPointer = document.getElementById('meterPointer');
-        const resultScreen = document.getElementById('resultScreen');
-        const videoStream = document.getElementById('videoStream');
+        const videoBackground = document.getElementById('videoBackground');
 
         // Start Loading
         startLoading();
@@ -376,10 +317,6 @@
         function startCountdown() {
             loadingScreen.style.display = 'none';
             countdownScreen.style.display = 'flex';
-
-            // Ganti background dengan video stream saat countdown
-            videoStream.src = "{{ url_for('video_feed') }}";
-            videoStream.style.display = 'block';
 
             const countInterval = setInterval(() => {
                 if (countdown > 0) {
@@ -437,7 +374,7 @@
                             timerDisplay.textContent = danceTime + 's';
                             if (danceTime <= 0) {
                                 clearInterval(timerInterval);
-                                showResult();
+                                stopDanceAndProcess();
                             }
                         }, 1000);
 
@@ -456,17 +393,25 @@
             meterPointer.style.transform = `translateX(-50%) rotate(${angle}deg)`;
         }
 
-        function showResult() {
+        function stopDanceAndProcess() {
             isDancing = false;
             danceScreen.style.display = 'none';
 
-            // Hentikan rekaman
+            // Hentikan rekaman (ini akan trigger background processing)
             fetch('/stop_recording')
-                .then(() => {
-                    // Tampilkan loading screen dulu
-                    window.location.href = '/loading_result';
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Langsung redirect ke loading page
+                        window.location.href = '/loading_result';
+                    } else {
+                        alert("Gagal menyimpan video");
+                    }
                 })
-                .catch(console.error);
+                .catch(err => {
+                    console.error("Error stopping recording:", err);
+                    alert("Terjadi kesalahan");
+                });
         }
 
         // Polling shake count selama tarian
