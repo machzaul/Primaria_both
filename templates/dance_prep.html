@@ -6,8 +6,10 @@
     <title>Siap Joget! - PRIMACTION</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
+        /* === BODY: gunakan background dari halaman form === */
         body {
-            background: #000;
+            background: url('/assets/BG (2).png') no-repeat center center fixed;
+            background-size: cover;
             height: 100vh;
             width: 100vw;
             overflow: hidden;
@@ -22,8 +24,9 @@
             padding: 0;
         }
 
-        /* Video Stream sebagai Background Penuh */
+        /* Video disembunyikan saat loading */
         .video-background {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
@@ -55,7 +58,6 @@
             text-align: center;
             padding: 20px;
             z-index: 20;
-            background: rgba(0,0,0,0.7);
             border-radius: 20px;
             max-width: 80%;
         }
@@ -70,7 +72,7 @@
             width: 80%;
             max-width: 400px;
             height: 15px;
-            background: #333;
+            background: rgba(255,255,255,0.2);
             border-radius: 10px;
             overflow: hidden;
             margin: 20px 0;
@@ -78,13 +80,13 @@
 
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #ccc, #eee);
+            background: white;
             width: 0%;
             transition: width 0.5s ease;
             border-radius: 10px;
         }
 
-        /* Countdown Screen */
+        /* Countdown & Dance */
         .countdown-screen {
             display: none;
             position: fixed;
@@ -120,7 +122,6 @@
             to { transform: scale(1.1); }
         }
 
-        /* Dance Screen */
         .dance-screen {
             display: none;
             position: fixed;
@@ -143,6 +144,7 @@
             text-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
 
+        /* === METER BAR DENGAN GAMBAR PNG === */
         .meter-container {
             position: absolute;
             bottom: 5%;
@@ -154,30 +156,76 @@
         .meter {
             width: 100%;
             height: 150px;
-            background: black;
             border-radius: 20px;
             overflow: hidden;
             position: relative;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
 
         .meter-bg {
             width: 100%;
             height: 100%;
-            background: linear-gradient(to right, red 0%, yellow 50%, green 100%);
-            clip-path: polygon(0% 100%, 100% 100%, 100% 50%, 0% 50%);
+            background: url('/static/assets/bar.png') no-repeat center bottom;
+            background-size: contain;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            z-index: 1;
         }
 
+        /* 🔸 POINTER DENGAN UI HARDCODE (CSS) — seperti kode kedua */
         .meter-pointer {
             position: absolute;
-            bottom: 10px;
+            bottom: 10px; /* jarak dari bawah */
             left: 50%;
             transform: translateX(-50%) rotate(0deg);
-            width: 10px;
-            height: 30px;
+            width: 10px;          /* lebar tetap ramping */
+            height: 50px;         /* 🔼 lebih panjang! */
             background: white;
-            border-radius: 5px;
+            border: 1.5px solid black; /* 🔲 border hitam */
+            border-radius: 5px;   /* ujung membulat */
             transition: transform 0.3s ease;
+            z-index: 2;
+
+            /* Titik putar: dari ujung bawah agar tidak melompat */
+            transform-origin: 50% 100%;
+        }
+
+        /* === OVERLAY "MANTAP!!" === */
+        .mantap-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, rgba(255,0,0,0.6) 0%, rgba(255,0,0,0) 50%);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 35;
+            pointer-events: none;
+        }
+
+        .mantap-text {
+            font-size: 8vw;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            animation: pulseText 0.8s infinite alternate;
+        }
+
+        .mantap-subtext {
+            font-size: 3vw;
+            color: #ddd;
+            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+            letter-spacing: 1px;
+        }
+
+        @keyframes pulseText {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
         }
 
         .instruction-box {
@@ -214,9 +262,10 @@
 </head>
 <body>
 
-    <!-- Video Stream sebagai Background -->
+    <!-- Video Stream (awalnya disembunyikan) -->
     <img src="{{ url_for('video_feed') }}" class="video-background" alt="Video Stream" id="videoBackground">
 
+    <!-- Header tetap di atas -->
     <div class="header">
         <img src="/assets/logoprimaction.png" alt="PRIMACTION Logo">
     </div>
@@ -246,6 +295,12 @@
             </div>
         </div>
 
+        <!-- Overlay Mantap -->
+        <div class="mantap-overlay" id="mantapOverlay">
+            <div class="mantap-text">MANTAP!!</div>
+            <div class="mantap-subtext">JOGET KAMU ASIK BANGET</div>
+        </div>
+
         <div class="instruction-box">
             Joget seasyik mungkin dalam waktu<br><strong>10 detik sampai bar terisi penuh</strong>
         </div>
@@ -256,9 +311,10 @@
         let isDancing = false;
         let countdown = 3;
         let danceTime = 10;
-        let meterValue = 0; // 0-100%
+        let meterValue = 0;
         let shakeCount = 0;
         let prevHipX = null;
+        let mantapShown = false;
 
         // Ambil data dari localStorage
         let nama = localStorage.getItem('userNama') || 'User';
@@ -266,7 +322,6 @@
         let dreamKey = localStorage.getItem('userDream') || 'bebas_cicilan';
         let frame = localStorage.getItem('selectedFrame') || '1';
 
-        // Mapping mimpi ke teks
         const dreamMap = {
             'bebas_cicilan': 'BEBAS DARI CICILAN',
             'rumah_impian': 'PUNYA RUMAH IMPAN',
@@ -276,10 +331,8 @@
             'ketemu_jodoh': 'KETEMU JODOH',
             'keluarga_bahagia': 'KELUARGA BAHAGIA'
         };
-
         const impian = dreamMap[dreamKey] || 'MIMPI JADI POL';
 
-        // Mapping frame ke file
         const frameMap = {
             '1': 'frame1.png',
             '2': 'frame2.png',
@@ -298,8 +351,8 @@
         const timerDisplay = document.getElementById('timerDisplay');
         const meterPointer = document.getElementById('meterPointer');
         const videoBackground = document.getElementById('videoBackground');
+        const mantapOverlay = document.getElementById('mantapOverlay');
 
-        // Start Loading
         startLoading();
 
         function startLoading() {
@@ -309,6 +362,10 @@
                 progressBar.style.width = progress + '%';
                 if (progress >= 100) {
                     clearInterval(interval);
+
+                    // 🔹 TAMPILKAN VIDEO SETELAH LOADING
+                    videoBackground.style.display = 'block';
+
                     setTimeout(startCountdown, 500);
                 }
             }, 100);
@@ -322,15 +379,9 @@
                 if (countdown > 0) {
                     countdownNumber.textContent = countdown;
                     switch(countdown) {
-                        case 3:
-                            countdownText.textContent = "SIAP?";
-                            break;
-                        case 2:
-                            countdownText.textContent = "OKE!";
-                            break;
-                        case 1:
-                            countdownText.textContent = "GAS!";
-                            break;
+                        case 3: countdownText.textContent = "SIAP?"; break;
+                        case 2: countdownText.textContent = "OKE!"; break;
+                        case 1: countdownText.textContent = "GAS!"; break;
                     }
                     countdown--;
                 } else {
@@ -341,11 +392,8 @@
         }
 
         function startDance() {
-            // Reset shake count di backend
             fetch('/reset_shake_count')
-                .then(response => response.json())
                 .then(() => {
-                    // Mulai rekaman
                     return fetch('/start_recording', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -355,20 +403,14 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        console.log("Recording started:", data.filename);
-
-                        // Tampilkan layar tarian
                         countdownScreen.style.display = 'none';
                         danceScreen.style.display = 'flex';
                         isDancing = true;
                         meterValue = 0;
                         shakeCount = 0;
                         prevHipX = null;
-
-                        // Update UI meter
                         updateMeter(0);
 
-                        // Start timer
                         const timerInterval = setInterval(() => {
                             danceTime--;
                             timerDisplay.textContent = danceTime + 's';
@@ -377,39 +419,45 @@
                                 stopDanceAndProcess();
                             }
                         }, 1000);
-
                     } else {
                         alert("Gagal memulai rekaman.");
                     }
                 })
                 .catch(err => {
-                    console.error("Error during setup:", err);
-                    alert("Terjadi kesalahan. Silakan coba lagi.");
+                    console.error("Error:", err);
+                    alert("Terjadi kesalahan.");
                 });
         }
 
         function updateMeter(value) {
+            // Rotasi dasar: dari -45° (kiri) ke +45° (kanan)
             const angle = -45 + (value / 100) * 90;
             meterPointer.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+
+            // Jika mencapai 33%, tampilkan "MANTAP!!"
+            if (value >= 33 && !mantapShown) {
+                mantapShown = true;
+                mantapOverlay.style.display = 'flex';
+                setTimeout(() => {
+                    mantapOverlay.style.display = 'none';
+                }, 2000);
+            }
         }
 
         function stopDanceAndProcess() {
             isDancing = false;
             danceScreen.style.display = 'none';
-
-            // Hentikan rekaman (ini akan trigger background processing)
             fetch('/stop_recording')
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        // Langsung redirect ke loading page
                         window.location.href = '/loading_result';
                     } else {
                         alert("Gagal menyimpan video");
                     }
                 })
                 .catch(err => {
-                    console.error("Error stopping recording:", err);
+                    console.error("Error:", err);
                     alert("Terjadi kesalahan");
                 });
         }
