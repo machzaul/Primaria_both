@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Hasil Jogetmu!</title>
+    <style>
+        body {
+            background: url('{{ url_for("static", filename="assets/BG (2).png") }}') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header {
+            position: absolute;
+            top: 3%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+        .header img {
+            height: 80px;
+        }
+
+        .content {
+            text-align: center;
+            padding: 2.5vw;
+            z-index: 10;
+            max-width: 95%;
+        }
+
+        .title-container {
+            font-size: 5vw;
+            font-weight: bold;
+            margin: 1vw 0;
+            line-height: 1.1;
+            text-shadow: 0 0 12px rgba(0,0,0,0.7);
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #C3C3C3 21%, #FFFFFF 55%, #999999 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 4vw;
+            margin: 1.5vw 0;
+            font-weight: 500;
+        }
+
+        .frame-container {
+            position: relative;
+            width: 85%;
+            max-width: 60vw;
+            margin: 3vw auto;
+        }
+
+        .frame-bg {
+            width: 100%;
+            height: auto;
+            max-height: 65vh;
+            background: black;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        /* QR CODE DI SUDUT KANAN BAWAH VIDEO */
+        .qr-code-container {
+            position: absolute;
+            bottom: 1vw;
+            right: 1vw;
+            width: 15vw;
+            max-width: 150px;
+            background: white;
+            padding: 0.5vw;
+            border: 2px solid #000;
+            border-radius: 0.5vw;
+            box-shadow: 0 0 1vw rgba(0,0,0,0.6);
+            z-index: 10;
+        }
+
+        .qr-code-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .qr-info {
+            font-size: 2.5vw;
+            margin-top: 4vw;
+            line-height: 1.4;
+            text-shadow: 0 0 1vw rgba(0,0,0,0.7);
+        }
+
+        .timer {
+            font-size: 2.5vw;
+            margin-top: 1.5vw;
+            color: #aaa;
+            text-shadow: 0 0 1vw rgba(0,0,0,0.8);
+        }
+
+        /* RESPONSIF */
+        @media (min-width: 1024px) {
+            .qr-code-container { width: 10vw; max-width: 120px; }
+        }
+        @media (min-width: 1920px) {
+            .qr-code-container { width: 8vw; max-width: 100px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="{{ url_for('static', filename='assets/logoprimaction.png') }}" alt="PRIMACTION">
+    </div>
+
+    <div class="content">
+        <div class="title-container">
+            <span class="title-line">GOYANG</span><br>
+            <span class="title-line">SAMPE POL</span>
+        </div>
+        <div class="subtitle gradient-text">MIMPI JADI POL</div>
+
+        <div class="frame-container">
+            <video class="frame-bg" autoplay muted loop playsinline>
+                <source src="{{ video_url }}" type="video/mp4">
+            </video>
+            <!-- QR CODE LANGSUNG DARI FLASK -->
+            <div class="qr-code-container">
+                <img src="/generate-qr?url={{ video_url | urlencode }}" alt="QR Code" />
+            </div>
+        </div>
+
+        <div class="qr-info">
+            <span>Scan QR code di samping</span><br>
+            <span><strong>untuk download hasil jogetmu!</strong></span>
+        </div>
+
+        <div class="timer" id="timer">Halaman tertutup dalam 60 detik.</div>
+    </div>
+
+    <script>
+        let seconds = 60;
+        const timer = document.getElementById('timer');
+        const interval = setInterval(() => {
+            seconds--;
+            timer.textContent = `Halaman tertutup dalam ${seconds} detik.`;
+            if (seconds <= 0) {
+                clearInterval(interval);
+                window.location.href = '/';
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

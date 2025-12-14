@@ -26,8 +26,8 @@
             z-index: 10;
         }
         .header img {
-            height: 60px;
-            filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));
+            height: 80px;
+            scale: 1.9;
         }
         .loading-text {
             font-size: 2vw;
@@ -35,21 +35,22 @@
             text-align: center;
         }
         .progress-bar-container {
-            width: 80%;
-            max-width: 400px;
-            height: 10px;
+            width: 90%;
+            max-width: 450px;
+            height: 30px;
             background: #700;
-            border-radius: 5px;
+            border-radius: 2px;
             overflow: hidden;
             margin: 20px 0;
             position: relative;
         }
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #ddd, #fff);
+            background: linear-gradient(135deg, #C3C3C3 21%, #FFFFFF 55%, #999999 100%);
             width: 0%;
             transition: width 0.3s ease;
-            border-radius: 5px;
+            border-radius: 2px;
+            border: #700 1px solid;
             box-shadow: 0 0 5px rgba(255,255,255,0.5);
         }
         .progress-text {
@@ -90,7 +91,7 @@
     <div class="progress-bar-container">
         <div class="progress-bar" id="progressBar"></div>
     </div>
-    <div class="progress-text" id="progressText">0%</div>
+    <div class="progress-text" id="progressText"></div>
 
     <script>
         let checkInterval;
@@ -114,12 +115,11 @@
                     if (data.status === 'processing') {
                         // Update progress bar dengan data real dari backend
                         progressBar.style.width = data.progress + '%';
-                        progressText.textContent = data.progress + '%';
                     } else if (data.status === 'completed') {
                         // Processing selesai
                         hasRedirected = true; // Set flag
                         progressBar.style.width = '100%';
-                        progressText.textContent = '100%';
+                
                         
                         // Stop semua interval dan timeout
                         clearInterval(checkInterval);

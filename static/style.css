@@ -367,18 +367,14 @@ select option {
 }
 
 .frame-option:hover {
-    transform: scale(1.03);
+    transform: scale(1);
 }
 
-.frame-option.selected {
-    border: 4px solid #d32f2f;
-    box-shadow: 0 0 8px rgba(200, 0, 0, 0.4);
-}
+
 
 .frame-option img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
     border-radius: 8px;
 }
 

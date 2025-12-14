@@ -69,21 +69,24 @@
         }
 
         .progress-bar-container {
-            width: 80%;
-            max-width: 400px;
-            height: 15px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 10px;
+            width: 90%;
+            max-width: 450px;
+            height: 30px;
+            background: #700;
+            border-radius: 2px;
             overflow: hidden;
             margin: 20px 0;
+            position: relative;
         }
 
         .progress-bar {
             height: 100%;
-            background: white;
+            background: linear-gradient(135deg, #C3C3C3 21%, #FFFFFF 55%, #999999 100%);
             width: 0%;
-            transition: width 0.5s ease;
-            border-radius: 10px;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+            border: #700 1px solid;
+            box-shadow: 0 0 5px rgba(255,255,255,0.5);
         }
 
         /* Countdown & Dance */
@@ -197,7 +200,6 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(0deg, rgba(255,0,0,0.6) 0%, rgba(255,0,0,0) 50%);
             display: none;
             justify-content: center;
             align-items: center;
@@ -206,26 +208,11 @@
             pointer-events: none;
         }
 
-        .mantap-text {
-            font-size: 8vw;
-            font-weight: bold;
-            color: white;
-            text-shadow: 0 0 10px rgba(0,0,0,0.8);
-            text-transform: uppercase;
-            margin-bottom: 10px;
-            animation: pulseText 0.8s infinite alternate;
-        }
-
-        .mantap-subtext {
-            font-size: 3vw;
-            color: #ddd;
-            text-shadow: 0 0 5px rgba(0,0,0,0.8);
-            letter-spacing: 1px;
-        }
-
-        @keyframes pulseText {
-            from { transform: scale(1); }
-            to { transform: scale(1.05); }
+        .mantap-image {
+            max-width: 80vw;
+            max-height: 60vh;
+            object-fit: contain;
+            pointer-events: none;
         }
 
         .instruction-box {
@@ -282,6 +269,9 @@
     <div class="countdown-screen" id="countdownScreen">
         <div class="countdown-number" id="countdownNumber">3</div>
         <div class="countdown-text" id="countdownText">SIAP?</div>
+        <div class="instruction-box">
+            Joget seasyik mungkin dalam waktu<br><strong>10 detik sampai bar terisi penuh</strong>
+        </div>
     </div>
 
     <!-- Dance Screen -->
@@ -297,13 +287,10 @@
 
         <!-- Overlay Mantap -->
         <div class="mantap-overlay" id="mantapOverlay">
-            <div class="mantap-text">MANTAP!!</div>
-            <div class="mantap-subtext">JOGET KAMU ASIK BANGET</div>
+            <img src="/static/assets/mantap.png" alt="MANTAP!!" class="mantap-image">
         </div>
 
-        <div class="instruction-box">
-            Joget seasyik mungkin dalam waktu<br><strong>10 detik sampai bar terisi penuh</strong>
-        </div>
+        
     </div>
 
     <script>
@@ -397,7 +384,13 @@
                     return fetch('/start_recording', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nama, ktp6, impian, frame_choice })
+                        body: JSON.stringify({
+                            nama,
+                            ktp6,
+                            impian,
+                            frame_choice,
+                            dream_key: dreamKey  // ✅ KIRIM dream_key KE BACKEND
+                        })
                     });
                 })
                 .then(response => response.json())
@@ -430,12 +423,15 @@
         }
 
         function updateMeter(value) {
-            // Rotasi dasar: dari -45° (kiri) ke +45° (kanan)
-            const angle = -45 + (value / 100) * 90;
+            // Batasi nilai agar tidak melebihi 80 atau kurang dari 0
+            value = Math.max(0, Math.min(80, value));
+
+            // Pemetaan: 0 → -45°, 80 → +45°
+            const angle = -45 + (value / 50) * 90;
             meterPointer.style.transform = `translateX(-50%) rotate(${angle}deg)`;
 
-            // Jika mencapai 33%, tampilkan "MANTAP!!"
-            if (value >= 33 && !mantapShown) {
+            // Tampilkan "MANTAP!!" saat nilai >= 50 (opsional: sesuaikan ambang jika perlu)
+            if (value >= 40 && !mantapShown) {
                 mantapShown = true;
                 mantapOverlay.style.display = 'flex';
                 setTimeout(() => {

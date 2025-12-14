@@ -1,5 +1,6 @@
 # app.py
-from flask import Flask, render_template, Response, jsonify, send_from_directory, request, redirect, url_for
+from flask import Flask, render_template, Response, jsonify, send_from_directory, request, redirect, url_for, send_file
+from io import BytesIO
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -7,6 +8,7 @@ import os
 import time
 import json
 import threading
+import qrcode
 
 app = Flask(__name__)
 
@@ -16,7 +18,7 @@ os.makedirs("data", exist_ok=True)
 os.makedirs("hasilnari", exist_ok=True)
 os.makedirs("results", exist_ok=True)
 
-# Inisialisasi MediaPipe Pose
+# Inisialisasi MediaPipe Pose (hanya untuk deteksi, tidak digambar)
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, min_tracking_confidence=0.5)
 mp_drawing = mp.solutions.drawing_utils
@@ -45,9 +47,9 @@ def detect_shake(hip_x, threshold=0.02):
     prev_hip_x = hip_x
     return False
 
-def create_final_video(raw_video_path, output_path, frame_overlay_path, impian_text, width=1080, height=1920):
+def create_final_video(raw_video_path, output_path, frame_overlay_path, dream_key, width=1080, height=1920):
     """
-    Buat video final 9:16 dengan frame overlay dan teks impian.
+    Buat video final 9:16 dengan frame overlay dan gambar dream.
     """
     global processing_status
     processing_status["status"] = "processing"
@@ -61,6 +63,10 @@ def create_final_video(raw_video_path, output_path, frame_overlay_path, impian_t
 
     fps = int(cap.get(cv2.CAP_PROP_FPS)) or 20
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    duration_sec = total_frames / fps if fps > 0 else 0
+
+    # Target durasi 10 detik
+    target_frames = int(10 * fps)
     fourcc = cv2.VideoWriter_fourcc(*'avc1')
     out_writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
@@ -71,13 +77,36 @@ def create_final_video(raw_video_path, output_path, frame_overlay_path, impian_t
         if overlay_img is not None:
             overlay_img = cv2.resize(overlay_img, (width, height), interpolation=cv2.INTER_AREA)
 
-    # Split teks
-    text_lines = impian_text.split('\n')
-    font = cv2.FONT_HERSHEY_DUPLEX
-    font_scale = 1.5
-    thickness = 3
+    # Mapping dream_key ke nama file gambar
+    DREAM_IMAGE_MAP = {
+        "bebas_cicilan": "dream1.png",
+        "rumah_impian": "dream2.png",
+        "keliling_dunia": "dream3.png",
+        "sukses_berbisnis": "dream4.png",
+        "karir_melesat": "dream5.png",
+        "ketemu_jodoh": "dream6.png",
+        "keluarga_bahagia": "dream7.png"
+    }
+
+    # Ambil nama file gambar berdasarkan dream_key
+    dream_image_filename = DREAM_IMAGE_MAP.get(dream_key, "dream1.png")  # default
+    dream_image_path = os.path.join("static/assets/dreamimage", dream_image_filename)
+
+    # Muat gambar dream
+    dream_img = None
+    if os.path.exists(dream_image_path):
+        dream_img = cv2.imread(dream_image_path, cv2.IMREAD_UNCHANGED)
+        if dream_img is not None:
+            # Resize agar lebar 80% dari width video (lebih kecil)
+            target_width = int(width * 0.8)  # 80% dari 1080 = 864px
+            h, w = dream_img.shape[:2]
+            scale = target_width / w
+            new_h = int(h * scale)
+            dream_img = cv2.resize(dream_img, (target_width, new_h), interpolation=cv2.INTER_AREA)
 
     frame_count = 0
+    frames_list = []  # Simpan frame jika perlu looping
+
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -101,15 +130,29 @@ def create_final_video(raw_video_path, output_path, frame_overlay_path, impian_t
                 cropped = frame[top:top+new_h, :]
         resized = cv2.resize(cropped, (width, height))
 
-        # Tambahkan teks
-        for i, line in enumerate(text_lines):
-            text_size = cv2.getTextSize(line, font, font_scale, thickness)[0]
-            text_x = (width - text_size[0]) // 2
-            text_y = int(height * 0.08) + i * (text_size[1] + 10)
-            cv2.putText(resized, line, (text_x, text_y),
-                        font, font_scale, (0, 0, 0), thickness+2, cv2.LINE_AA)  # outline
-            cv2.putText(resized, line, (text_x, text_y),
-                        font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)  # fill
+        # Tambahkan gambar dream di atas video
+        if dream_img is not None:
+            # Tentukan posisi Y: 10% dari atas
+            y_offset = int(height * 0.10)  # 10% dari atas
+            h_dream, w_dream = dream_img.shape[:2]
+
+            # Pastikan tidak melebihi batas frame
+            if y_offset + h_dream > height:
+                y_offset = height - h_dream
+
+            # Tentukan posisi X: center horizontal
+            x_offset = (width - w_dream) // 2
+
+            # Overlay gambar dengan alpha jika ada
+            if dream_img.shape[2] == 4:  # PNG dengan alpha
+                alpha = dream_img[:, :, 3] / 255.0
+                for c in range(3):
+                    resized[y_offset:y_offset+h_dream, x_offset:x_offset+w_dream, c] = \
+                        resized[y_offset:y_offset+h_dream, x_offset:x_offset+w_dream, c] * (1 - alpha) + \
+                        dream_img[:, :, c] * alpha
+            else:
+                # Tanpa alpha — replace langsung
+                resized[y_offset:y_offset+h_dream, x_offset:x_offset+w_dream] = dream_img
 
         # Tambahkan frame overlay
         if overlay_img is not None and overlay_img.shape[2] == 4:
@@ -120,6 +163,7 @@ def create_final_video(raw_video_path, output_path, frame_overlay_path, impian_t
             resized = cv2.addWeighted(resized, 0.7, overlay_img, 0.3, 0)
 
         out_writer.write(resized)
+        frames_list.append(resized.copy())  # Simpan frame untuk looping jika perlu
         frame_count += 1
         
         # Update progress
@@ -127,19 +171,33 @@ def create_final_video(raw_video_path, output_path, frame_overlay_path, impian_t
             processing_status["progress"] = int((frame_count / total_frames) * 100)
 
     cap.release()
+
+    # Jika durasi < 10 detik, loop frame terakhir sampai 10 detik
+    if frame_count < target_frames:
+        remaining = target_frames - frame_count
+        last_frame = frames_list[-1] if frames_list else None
+        for _ in range(remaining):
+            out_writer.write(last_frame)
+            frame_count += 1
+            processing_status["progress"] = int((frame_count / target_frames) * 100)
+
+    # Jika durasi > 10 detik, stop setelah 10 detik
+    elif frame_count > target_frames:
+        print(f"Video dipotong dari {frame_count} frame menjadi {target_frames} frame (10 detik).")
+
     out_writer.release()
     print(f"Video final dibuat: {frame_count} frame → {output_path}")
     processing_status["status"] = "completed"
     processing_status["progress"] = 100
     return True
 
-def process_video_async(raw_video, final_video, frame_overlay, impian):
+def process_video_async(raw_video, final_video, frame_overlay, impian, dream_key):
     """Function untuk processing video di background thread"""
     success = create_final_video(
         raw_video_path=raw_video,
         output_path=final_video,
         frame_overlay_path=frame_overlay,
-        impian_text=impian.replace(' ', '\n')
+        dream_key=dream_key  # <-- kirim dream_key
     )
     
     if success:
@@ -173,16 +231,16 @@ def gen_frames():
 
         last_frame = frame.copy()
 
+        # Hanya proses pose untuk deteksi shake, TIDAK GAMBAR LANDMARKS
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = pose.process(rgb_frame)
 
         if results.pose_landmarks:
-            mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
             hip = results.pose_landmarks.landmark[23]
             detect_shake(hip.x)
 
-            cv2.putText(frame, f"Shake: {current_shake_count}", (20, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            # Tampilkan counter shake saja (opsional, bisa dihapus juga)
+
 
         ret, buffer = cv2.imencode('.jpg', frame)
         if not ret:
@@ -192,6 +250,26 @@ def gen_frames():
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
     cap.release()
+
+# === BARU: Generate QR Code dinamis ===
+@app.route('/generate-qr')
+def generate_qr():
+    from io import BytesIO
+    import qrcode
+    url = request.args.get('url')
+    if not url:
+        return "URL required", 400
+
+    qr = qrcode.QRCode(version=1, box_size=8, border=2)
+    qr.add_data(url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buf = BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+
+    return send_file(buf, mimetype='image/png')
 
 # --- Routes ---
 
@@ -227,12 +305,14 @@ def start_recording():
     ktp6 = data.get('ktp6', '000000')[:6]
     impian = data.get('impian', 'MIMPI JADI POL')
     frame_choice = data.get('frame_choice', 'frame1.png')
+    dream_key = data.get('dream_key', 'bebas_cicilan')  # <-- tambahkan ini
 
     user_data = {
         "nama": nama,
         "ktp6": ktp6,
         "impian": impian.upper(),
-        "frame_choice": frame_choice
+        "frame_choice": frame_choice,
+        "dream_key": dream_key  # <-- simpan key dream
     }
     
     # Reset processing status
@@ -275,6 +355,7 @@ def stop_recording():
     ktp6 = user_data['ktp6']
     impian = user_data['impian']
     frame_choice = user_data['frame_choice']
+    dream_key = user_data['dream_key']  # <-- ambil dream_key
 
     raw_video = f"hasilnari/{nama}_{ktp6}_raw.mp4"
     final_video = f"hasilnari/{nama}_{ktp6}_final.mp4"
@@ -286,7 +367,7 @@ def stop_recording():
     # Mulai processing di background thread
     thread = threading.Thread(
         target=process_video_async,
-        args=(raw_video, final_video, frame_overlay, impian)
+        args=(raw_video, final_video, frame_overlay, impian, dream_key)  # <-- kirim dream_key
     )
     thread.daemon = True
     thread.start()
@@ -342,7 +423,8 @@ def final_result():
             "nama": "User",
             "ktp6": "000000",
             "impian": "MIMPI JADI POL",
-            "frame_choice": "frame1.png"
+            "frame_choice": "frame1.png",
+            "dream_key": "bebas_cicilan"
         }
     return render_template('final_result.html', user=user_data)
 

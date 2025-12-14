@@ -19,6 +19,8 @@
             position: relative;
             overflow: hidden;
         }
+
+        /* Header Logo */
         .header {
             position: absolute;
             top: 3%;
@@ -27,15 +29,19 @@
             z-index: 10;
         }
         .header img {
-            height: 60px;
-            filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));
+            height: 80px;
+            scale: 1.9; /* Batas maksimal untuk TV besar */
         }
+
+        /* Corner Decorations */
         .corner-top-right {
             position: absolute;
             top: 0;
             right: 0;
-            width: 200px;
-            height: 200px;
+            width: 18vw;
+            max-width: 250px;
+            height: 18vw;
+            max-height: 250px;
             background: url('/assets/corner_top_right.png') no-repeat;
             background-size: contain;
             z-index: 5;
@@ -44,75 +50,242 @@
             position: absolute;
             bottom: 0;
             left: 0;
-            width: 200px;
-            height: 200px;
+            width: 18vw;
+            max-width: 250px;
+            height: 18vw;
+            max-height: 250px;
             background: url('/assets/corner_bottom_left.png') no-repeat;
             background-size: contain;
             z-index: 5;
         }
+
+        /* Main Content Container */
         .content {
             text-align: center;
-            padding: 20px;
+            padding: 2.5vw; /* Diperbesar dari 2vw */
             z-index: 10;
-            max-width: 90%;
+            max-width: 95%;
+            width: 100%;
         }
-        .title {
-            font-size: 5vw;
+
+        /* Title: GOYANG SAMPE POL */
+        .title-container {
+            font-size: 5vw; /* Diperbesar dari 5vw */
             font-weight: bold;
-            margin: 10px 0;
-            line-height: 1.2;
-            text-shadow: 0 0 10px rgba(0,0,0,0.7);
+            margin: 1vw 0; /* Diperbesar dari 1vw */
+            line-height: 1.1;
+            text-shadow: 0 0 12px rgba(0,0,0,0.7); /* Shadow diperbesar */
+            display: inline-block;
         }
+
+        .title-line {
+            display: block;
+            background: linear-gradient(
+                to right,
+                #C3C3C3 21%,
+                #FFFFFF 55%,
+                #999999 100%
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+        }
+
+        .title-line:first-child {
+            font-size: 1.3em; /* Slightly larger first line */
+        }
+
+        .title-line:last-child {
+            font-size: 1.1em;
+        }
+
+        /* Subtitle: MIMPI JADI POL */
+        .gradient-text {
+            background: linear-gradient(
+                to right,
+                #C3C3C3 21%,
+                #FFFFFF 55%,
+                #999999 100%
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+
         .subtitle {
-            font-size: 3vw;
-            margin: 10px 0;
-            text-shadow: 0 0 8px rgba(0,0,0,0.7);
+            font-size: 4vw; /* Diperbesar dari 3vw */
+            margin: 1.5vw 0; /* Diperbesar */
+            font-weight: 500;
+            letter-spacing: 0.15vw;
         }
+
+        /* Video Frame Container */
         .frame-container {
             position: relative;
-            width: 80%;
-            max-width: 400px;
-            margin: 20px auto;
+            width: 85%; /* Lebih lebar */
+            max-width: 60vw; /* Diperbesar dari 50vw */
+            margin: 3vw auto; /* Diperbesar dari 2vw */
             border: 0;
         }
+
         .frame-bg {
             width: 100%;
             height: auto;
-            max-height: 60vh;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(255,0,0,0.5);
+            max-height: 65vh; /* Diperbesar dari 60vh */
+            border-radius: 1; /* Radius diperbesar */ /* Shadow lebih tebal */
             object-fit: cover;
             z-index: 1;
             background: black;
         }
+
+        /* QR Info Text (2 baris) */
         .qr-info {
-            font-size: 2vw;
-            margin-top: 30px;
+            font-size: 2.5vw; /* Diperbesar dari 2vw */
+            margin-top: 4vw; /* Diperbesar */
             line-height: 1.4;
-            text-shadow: 0 0 8px rgba(0,0,0,0.7);
+            text-shadow: 0 0 1vw rgba(0,0,0,0.7); /* Shadow lebih besar */
         }
+
+        .qr-line {
+            display: block;
+        }
+
+        .qr-line:first-child {
+            /* Baris pertama */
+        }
+
+        .qr-line:last-child {
+            font-weight: bold;
+        }
+
+        /* Timer */
         .timer {
-            font-size: 2vw;
-            margin-top: 10px;
+            font-size: 2.5vw; /* Diperbesar */
+            margin-top: 1.5vw; /* Diperbesar */
             color: #aaa;
-            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+            text-shadow: 0 0 1vw rgba(0,0,0,0.8);
         }
-        
-        /* Loading overlay jika video belum siap */
+
+        /* Loading Overlay */
         .video-loading {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.8);
-            padding: 20px;
-            border-radius: 10px;
+            padding: 3vw; /* Diperbesar */
+            border-radius: 1.5vw; /* Diperbesar */
             display: none;
             z-index: 5;
         }
-        
+
         .video-loading.active {
             display: block;
+        }
+
+        /* QR CODE CONTAINER - POSISI DI SUDUT KANAN BAWAH VIDEO */
+        .qr-code-container {
+            position: absolute;
+            bottom: 1vw;
+            right: 1vw;
+            width: 15vw;
+            max-width: 150px;
+            z-index: 10;
+            background: white;
+            padding: 0.5vw;
+            border: 2px solid #000;
+            border-radius: 0.5vw;
+            box-shadow: 0 0 1vw rgba(0,0,0,0.6);
+        }
+
+        .qr-code-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* RESPONSIF UNTUK TV BESAR */
+        @media (min-width: 1024px) {
+            .qr-code-container {
+                width: 10vw;
+                max-width: 120px;
+                bottom: 1.5vw;
+                right: 1.5vw;
+                padding: 0.7vw;
+                border-radius: 0.8vw;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .qr-code-container {
+                width: 8vw;
+                max-width: 100px;
+                bottom: 2vw;
+                right: 2vw;
+                padding: 0.5vw;
+                border-radius: 0.5vw;
+            }
+        }
+
+        /* === RESPONSIF UNTUK LAYAR BESAR (TV 40"+) === */
+        @media (min-width: 1024px) {
+            .header img {
+                height: 6vw; /* Tetap dominan tapi tidak terlalu besar */
+                max-height: 100px;
+            }
+            .title-container {
+                font-size: 5vw; /* Masih besar, tapi tidak terlalu memenuhi layar */
+            }
+            .subtitle {
+                font-size: 3.5vw;
+            }
+            .qr-info {
+                font-size: 2vw;
+            }
+            .timer {
+                font-size: 2vw;
+            }
+            .frame-container {
+                max-width: 55vw; /* Sedikit lebih sempit untuk keseimbangan */
+            }
+            .frame-bg {
+                border-radius: 1.2vw;
+                box-shadow: 0 0 2.5vw rgba(255,0,0,0.5);
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .header img {
+                height: 5vw;
+                max-height: 90px;
+            }
+            .title-container {
+                font-size: 4.5vw;
+            }
+            .subtitle {
+                font-size: 3vw;
+            }
+            .qr-info {
+                font-size: 1.8vw;
+            }
+            .timer {
+                font-size: 1.8vw;
+            }
+            .frame-container {
+                max-width: 50vw;
+            }
+            .frame-bg {
+                border-radius: 1vw;
+                box-shadow: 0 0 2vw rgba(255,0,0,0.5);
+            }
+        }
+
+        /* Pastikan semua elemen tetap proporsional saat zoom/resize */
+        * {
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -124,60 +297,65 @@
     <div class="corner-bottom-left"></div>
 
     <div class="content">
-        <div class="title">GOYANG SAMPE POL</div>
-        <div class="subtitle">MIMPI JADI POL</div>
+        <div class="title-container">
+            <span class="title-line">GOYANG</span>
+            <span class="title-line">SAMPE POL</span>
+        </div>
+        <div class="subtitle gradient-text">MIMPI JADI POL</div>
 
         <div class="frame-container">
-            <!-- Video Final (sudah menyatu dengan frame & teks) -->
             <video class="frame-bg" autoplay muted loop playsinline preload="auto" id="finalVideo">
                 <source src="/hasilnari/{{ user.nama }}_{{ user.ktp6 }}_final.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
             <div class="video-loading" id="videoLoading">
-                <div style="color: white; font-size: 1.2vw;">Loading video...</div>
+                <div style="color: white; font-size: 1.5vw;">Loading video...</div>
+            </div>
+            <!-- QR CODE DI SUDUT KANAN BAWAH VIDEO -->
+            <div class="qr-code-container">
+                <!-- Bangun URL video lengkap -->
+                {% set video_url = url_for('serve_hasilnari', filename=user.nama + '_' + user.ktp6 + '_final.mp4', _external=True) %}
+                <img src="/generate-qr?url={{ video_url | urlencode }}" alt="Scan to download" />
             </div>
         </div>
 
+        <!-- QR Info dalam dua baris -->
         <div class="qr-info">
-            Scan QR code disamping totem untuk mendownload hasil jogetmu!
+            <span class="qr-line">Scan QR code disamping totem untuk</span>
+            <span class="qr-line">mendownload hasil jogetmu!</span>
         </div>
+
         <div class="timer" id="timer">Halaman tertutup dalam 60 detik.</div>
     </div>
 
     <script>
-        // Timer countdown untuk auto-close
         let seconds = 60;
         const timerElement = document.getElementById('timer');
         const videoElement = document.getElementById('finalVideo');
         const loadingOverlay = document.getElementById('videoLoading');
-        
-        // Show loading jika video belum siap
+
         if (videoElement.readyState < 3) {
             loadingOverlay.classList.add('active');
         }
-        
-        // Hide loading saat video siap
+
         videoElement.addEventListener('loadeddata', function() {
             loadingOverlay.classList.remove('active');
         });
-        
-        // Error handling
+
         videoElement.addEventListener('error', function(e) {
             console.error('Video load error:', e);
-            loadingOverlay.innerHTML = '<div style="color: #f00; font-size: 1.2vw;">Video tidak dapat dimuat. Refresh halaman.</div>';
+            loadingOverlay.innerHTML = '<div style="color: #f00; font-size: 1.5vw;">Video tidak dapat dimuat. Refresh halaman.</div>';
         });
-        
-        // Countdown timer
+
         const countdownInterval = setInterval(() => {
             seconds--;
             timerElement.textContent = `Halaman tertutup dalam ${seconds} detik.`;
             if (seconds <= 0) {
                 clearInterval(countdownInterval);
-                window.location.replace('/form'); // Gunakan replace agar tidak bisa back
+                window.location.replace('/');
             }
         }, 1000);
-        
-        // Cleanup saat page unload
+
         window.addEventListener('beforeunload', function() {
             clearInterval(countdownInterval);
         });
