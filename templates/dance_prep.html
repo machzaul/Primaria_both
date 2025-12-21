@@ -344,18 +344,49 @@
 
         function startLoading() {
             let progress = 0;
+            const targetProgress = 95; // tahan di 95% sampai kamera siap
             const interval = setInterval(() => {
-                progress += 5;
-                progressBar.style.width = progress + '%';
-                if (progress >= 100) {
-                    clearInterval(interval);
-
-                    // 🔹 TAMPILKAN VIDEO SETELAH LOADING
-                    videoBackground.style.display = 'block';
-
-                    setTimeout(startCountdown, 500);
+                if (progress < targetProgress) {
+                    progress += 5;
+                    progressBar.style.width = progress + '%';
                 }
             }, 100);
+
+            // Tunggu sampai video stream berhasil dimuat
+            videoBackground.onload = () => {
+                // Pastikan progress sudah minimal 95%
+                if (progress < 95) {
+                    progressBar.style.width = '95%';
+                }
+
+                // Naikkan ke 100% dan lanjutkan
+                setTimeout(() => {
+                    progressBar.style.width = '100%';
+                    setTimeout(() => {
+                        clearInterval(interval);
+                        videoBackground.style.display = 'block';
+                        setTimeout(startCountdown, 300);
+                    }, 200);
+                }, 300);
+            };
+
+            videoBackground.onerror = () => {
+                // Opsional: tampilkan pesan error jika kamera gagal
+                console.error("Kamera gagal dimuat.");
+                // Bisa tambahkan retry atau fallback di sini
+                // Untuk sementara, tetap lanjutkan setelah timeout
+                setTimeout(() => {
+                    if (progress < 95) {
+                        progressBar.style.width = '95%';
+                    }
+                    setTimeout(() => {
+                        progressBar.style.width = '100%';
+                        clearInterval(interval);
+                        // Tetap lanjutkan meski kamera gagal (opsional)
+                        setTimeout(startCountdown, 300);
+                    }, 500);
+                }, 2000);
+            };
         }
 
         function startCountdown() {
@@ -424,14 +455,14 @@
 
         function updateMeter(value) {
             // Batasi nilai agar tidak melebihi 80 atau kurang dari 0
-            value = Math.max(0, Math.min(80, value));
+            value = Math.max(0, Math.min(120, value));
 
             // Pemetaan: 0 → -45°, 80 → +45°
-            const angle = -45 + (value / 50) * 90;
+            const angle = -65 + (value / 90) * 120;
             meterPointer.style.transform = `translateX(-50%) rotate(${angle}deg)`;
 
             // Tampilkan "MANTAP!!" saat nilai >= 50 (opsional: sesuaikan ambang jika perlu)
-            if (value >= 40 && !mantapShown) {
+            if (value >= 70 && !mantapShown) {
                 mantapShown = true;
                 mantapOverlay.style.display = 'flex';
                 setTimeout(() => {
@@ -465,7 +496,7 @@
                 const res = await fetch('/get_shake_count');
                 const data = await res.json();
                 shakeCount = data.shake_count;
-                meterValue = Math.min(100, shakeCount * 5); // 1 shake = 5%
+                meterValue = Math.min(100, shakeCount * 4); // 1 shake = 5%
                 updateMeter(meterValue);
             } catch(e) {
                 console.log("Error fetching shake count");

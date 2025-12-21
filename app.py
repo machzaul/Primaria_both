@@ -1,14 +1,15 @@
-# app.py
-from flask import Flask, render_template, Response, jsonify, send_from_directory, request, redirect, url_for, send_file
+# app.py - Optimized for Mini PC (16GB RAM)
+from flask import Flask, render_template, Response, jsonify, send_from_directory, request, send_file
 from io import BytesIO
 import cv2
 import mediapipe as mp
 import numpy as np
 import os
 import time
-import json
 import threading
 import qrcode
+import subprocess
+import gc  # Garbage collector untuk memory management
 
 app = Flask(__name__)
 
@@ -18,20 +19,24 @@ os.makedirs("data", exist_ok=True)
 os.makedirs("hasilnari", exist_ok=True)
 os.makedirs("results", exist_ok=True)
 
-# Inisialisasi MediaPipe Pose (hanya untuk deteksi, tidak digambar)
+# Inisialisasi MediaPipe Pose dengan setting ringan
 mp_pose = mp.solutions.pose
-pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, min_tracking_confidence=0.5)
-mp_drawing = mp.solutions.drawing_utils
+pose = mp_pose.Pose(
+    static_image_mode=False,
+    model_complexity=0,  # 0 = lite model (lebih ringan)
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5
+)
 
 # Variabel global
 current_shake_count = 0
 prev_hip_x = None
 recording = False
 out = None
-video_filename = ""
 last_frame = None
 user_data = {}
-processing_status = {"status": "idle", "progress": 0}  # Status processing
+processing_status = {"status": "idle", "progress": 0}
+FFMPEG_PATH = None
 
 def detect_shake(hip_x, threshold=0.02):
     global prev_hip_x, current_shake_count
@@ -47,9 +52,136 @@ def detect_shake(hip_x, threshold=0.02):
     prev_hip_x = hip_x
     return False
 
-def create_final_video(raw_video_path, output_path, frame_overlay_path, dream_key, width=1080, height=1920):
+def check_ffmpeg_installed():
+    """Cek FFmpeg dengan minimal logging"""
+    global FFMPEG_PATH
+    
+    # Cek imageio_ffmpeg
+    try:
+        import imageio_ffmpeg
+        ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+        if os.path.exists(ffmpeg_path):
+            FFMPEG_PATH = ffmpeg_path
+            return True, ffmpeg_path
+    except:
+        pass
+    
+    # Cek system PATH
+    try:
+        result = subprocess.run(['ffmpeg', '-version'], 
+                              capture_output=True, timeout=5)
+        if result.returncode == 0:
+            FFMPEG_PATH = 'ffmpeg'
+            return True, 'ffmpeg'
+    except:
+        pass
+    
+    FFMPEG_PATH = None
+    return False, None
+
+def compress_video_opencv_light(input_path, output_path):
     """
-    Buat video final 9:16 dengan frame overlay dan gambar dream.
+    Kompresi ringan dengan OpenCV - Optimized untuk Mini PC
+    """
+    try:
+        cap = cv2.VideoCapture(input_path)
+        if not cap.isOpened():
+            return False
+        
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+        # Turunkan resolusi ke 720p untuk hemat RAM
+        new_width = 720
+        new_height = 1280
+        
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out_writer = cv2.VideoWriter(output_path, fourcc, fps, (new_width, new_height))
+        
+        if not out_writer.isOpened():
+            cap.release()
+            return False
+        
+        # Process dengan JPEG quality 70 (lebih ringan)
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 70]
+        frame_count = 0
+        
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            # Resize
+            resized = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            
+            # Compress
+            _, encoded = cv2.imencode('.jpg', resized, encode_param)
+            compressed_frame = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
+            
+            out_writer.write(compressed_frame)
+            frame_count += 1
+            
+            # Clear memory setiap 60 frames
+            if frame_count % 60 == 0:
+                gc.collect()
+        
+        cap.release()
+        out_writer.release()
+        gc.collect()  # Clear memory
+        
+        return os.path.exists(output_path)
+        
+    except Exception as e:
+        return False
+
+def compress_video_ffmpeg_light(input_path, output_path):
+    """
+    Kompresi dengan FFmpeg - Optimized untuk Mini PC
+    """
+    global FFMPEG_PATH
+    
+    if not FFMPEG_PATH:
+        return False
+    
+    try:
+        # Setting ringan untuk Mini PC
+        cmd = [
+            FFMPEG_PATH,
+            '-i', input_path,
+            '-c:v', 'libx264',
+            '-crf', '30',  # CRF 30 untuk kompresi lebih tinggi
+            '-preset', 'veryfast',  # Very fast untuk CPU ringan
+            '-vf', 'scale=720:1280',  # 720p untuk hemat RAM
+            '-maxrate', '1M',  # 1Mbps max
+            '-bufsize', '2M',
+            '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac',
+            '-b:a', '64k',
+            '-ar', '44100',
+            '-movflags', '+faststart',
+            '-threads', '2',  # Limit threads agar tidak overload
+            '-y',
+            output_path
+        ]
+        
+        # Run dengan minimal output
+        process = subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL,  # No stdout logging
+            stderr=subprocess.DEVNULL,  # No stderr logging
+            timeout=90
+        )
+        
+        return process.returncode == 0 and os.path.exists(output_path)
+        
+    except:
+        return False
+
+def create_final_video_light(raw_video_path, output_path, frame_overlay_path, dream_key):
+    """
+    Buat video final dengan processing ringan untuk Mini PC
+    Width & height lebih kecil: 720x1280 (hemat 50% memory)
     """
     global processing_status
     processing_status["status"] = "processing"
@@ -57,27 +189,32 @@ def create_final_video(raw_video_path, output_path, frame_overlay_path, dream_ke
     
     cap = cv2.VideoCapture(raw_video_path)
     if not cap.isOpened():
-        print("Error: Tidak bisa membuka video mentah.")
         processing_status["status"] = "error"
         return False
 
     fps = int(cap.get(cv2.CAP_PROP_FPS)) or 20
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    duration_sec = total_frames / fps if fps > 0 else 0
-
-    # Target durasi 10 detik
     target_frames = int(10 * fps)
-    fourcc = cv2.VideoWriter_fourcc(*'avc1')
-    out_writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    
+    # RESOLUSI LEBIH RENDAH untuk hemat RAM: 720p instead of 1080p
+    width, height = 720, 1280
+    
+    temp_output = output_path.replace('.mp4', '_temp.mp4')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out_writer = cv2.VideoWriter(temp_output, fourcc, fps, (width, height))
+    
+    if not out_writer.isOpened():
+        processing_status["status"] = "error"
+        return False
 
-    # Muat frame overlay
+    # Load overlay
     overlay_img = None
     if os.path.exists(frame_overlay_path):
         overlay_img = cv2.imread(frame_overlay_path, cv2.IMREAD_UNCHANGED)
         if overlay_img is not None:
             overlay_img = cv2.resize(overlay_img, (width, height), interpolation=cv2.INTER_AREA)
 
-    # Mapping dream_key ke nama file gambar
+    # Load dream image
     DREAM_IMAGE_MAP = {
         "bebas_cicilan": "dream1.png",
         "rumah_impian": "dream2.png",
@@ -88,31 +225,28 @@ def create_final_video(raw_video_path, output_path, frame_overlay_path, dream_ke
         "keluarga_bahagia": "dream7.png"
     }
 
-    # Ambil nama file gambar berdasarkan dream_key
-    dream_image_filename = DREAM_IMAGE_MAP.get(dream_key, "dream1.png")  # default
+    dream_image_filename = DREAM_IMAGE_MAP.get(dream_key, "dream1.png")
     dream_image_path = os.path.join("static/assets/dreamimage", dream_image_filename)
 
-    # Muat gambar dream
     dream_img = None
     if os.path.exists(dream_image_path):
         dream_img = cv2.imread(dream_image_path, cv2.IMREAD_UNCHANGED)
         if dream_img is not None:
-            # Resize agar lebar 80% dari width video (lebih kecil)
-            target_width = int(width * 0.8)  # 80% dari 1080 = 864px
+            target_width = int(width * 0.8)
             h, w = dream_img.shape[:2]
             scale = target_width / w
             new_h = int(h * scale)
             dream_img = cv2.resize(dream_img, (target_width, new_h), interpolation=cv2.INTER_AREA)
 
     frame_count = 0
-    frames_list = []  # Simpan frame jika perlu looping
+    last_frame_img = None
 
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
-        # Convert to 9:16
+        # Crop to 9:16
         h, w = frame.shape[:2]
         if w / h > 9 / 16:
             new_w = int(h * 9 / 16)
@@ -128,33 +262,27 @@ def create_final_video(raw_video_path, output_path, frame_overlay_path, dream_ke
             else:
                 top = (h - new_h) // 2
                 cropped = frame[top:top+new_h, :]
-        resized = cv2.resize(cropped, (width, height))
+        
+        resized = cv2.resize(cropped, (width, height), interpolation=cv2.INTER_AREA)
 
-        # Tambahkan gambar dream di atas video
+        # Add dream image
         if dream_img is not None:
-            # Tentukan posisi Y: 10% dari atas
-            y_offset = int(height * 0.10)  # 10% dari atas
+            y_offset = int(height * 0.10)
             h_dream, w_dream = dream_img.shape[:2]
-
-            # Pastikan tidak melebihi batas frame
             if y_offset + h_dream > height:
                 y_offset = height - h_dream
-
-            # Tentukan posisi X: center horizontal
             x_offset = (width - w_dream) // 2
 
-            # Overlay gambar dengan alpha jika ada
-            if dream_img.shape[2] == 4:  # PNG dengan alpha
+            if dream_img.shape[2] == 4:
                 alpha = dream_img[:, :, 3] / 255.0
                 for c in range(3):
                     resized[y_offset:y_offset+h_dream, x_offset:x_offset+w_dream, c] = \
                         resized[y_offset:y_offset+h_dream, x_offset:x_offset+w_dream, c] * (1 - alpha) + \
                         dream_img[:, :, c] * alpha
             else:
-                # Tanpa alpha — replace langsung
                 resized[y_offset:y_offset+h_dream, x_offset:x_offset+w_dream] = dream_img
 
-        # Tambahkan frame overlay
+        # Add overlay
         if overlay_img is not None and overlay_img.shape[2] == 4:
             alpha = overlay_img[:, :, 3] / 255.0
             for c in range(3):
@@ -163,64 +291,99 @@ def create_final_video(raw_video_path, output_path, frame_overlay_path, dream_ke
             resized = cv2.addWeighted(resized, 0.7, overlay_img, 0.3, 0)
 
         out_writer.write(resized)
-        frames_list.append(resized.copy())  # Simpan frame untuk looping jika perlu
+        last_frame_img = resized.copy()
         frame_count += 1
         
         # Update progress
         if total_frames > 0:
-            processing_status["progress"] = int((frame_count / total_frames) * 100)
+            processing_status["progress"] = int((frame_count / total_frames) * 60)
+        
+        # Clear memory setiap 50 frames
+        if frame_count % 50 == 0:
+            gc.collect()
 
     cap.release()
 
-    # Jika durasi < 10 detik, loop frame terakhir sampai 10 detik
-    if frame_count < target_frames:
+    # Extend video jika kurang dari 10 detik
+    if frame_count < target_frames and last_frame_img is not None:
         remaining = target_frames - frame_count
-        last_frame = frames_list[-1] if frames_list else None
         for _ in range(remaining):
-            out_writer.write(last_frame)
+            out_writer.write(last_frame_img)
             frame_count += 1
-            processing_status["progress"] = int((frame_count / target_frames) * 100)
-
-    # Jika durasi > 10 detik, stop setelah 10 detik
-    elif frame_count > target_frames:
-        print(f"Video dipotong dari {frame_count} frame menjadi {target_frames} frame (10 detik).")
+            processing_status["progress"] = int((frame_count / target_frames) * 60)
 
     out_writer.release()
-    print(f"Video final dibuat: {frame_count} frame → {output_path}")
+    gc.collect()
+    
+    # Compress
+    processing_status["status"] = "compressing"
+    processing_status["progress"] = 70
+    
+    ffmpeg_available, _ = check_ffmpeg_installed()
+    compression_success = False
+    
+    if ffmpeg_available:
+        compression_success = compress_video_ffmpeg_light(temp_output, output_path)
+    
+    if not compression_success:
+        compression_success = compress_video_opencv_light(temp_output, output_path)
+    
+    # Cleanup
+    if compression_success and os.path.exists(temp_output):
+        os.remove(temp_output)
+    elif os.path.exists(temp_output):
+        os.rename(temp_output, output_path)
+    
     processing_status["status"] = "completed"
     processing_status["progress"] = 100
+    gc.collect()
+    
     return True
 
 def process_video_async(raw_video, final_video, frame_overlay, impian, dream_key):
-    """Function untuk processing video di background thread"""
-    success = create_final_video(
+    """Background processing"""
+    success = create_final_video_light(
         raw_video_path=raw_video,
         output_path=final_video,
         frame_overlay_path=frame_overlay,
-        dream_key=dream_key  # <-- kirim dream_key
+        dream_key=dream_key
     )
     
     if success:
-        # Buat thumbnail
         nama = user_data.get('nama', 'user')
         ktp6 = user_data.get('ktp6', '000000')
+        
+        # Buat thumbnail
         cap = cv2.VideoCapture(final_video)
-        success, thumb = cap.read()
-        if success:
-            cv2.imwrite(f"results/{nama}_{ktp6}_thumbnail.jpg", thumb)
+        ret, thumb = cap.read()
+        if ret:
+            # Thumbnail kecil untuk hemat space
+            thumb = cv2.resize(thumb, (360, 640), interpolation=cv2.INTER_AREA)
+            cv2.imwrite(f"results/{nama}_{ktp6}_thumbnail.jpg", thumb, 
+                       [cv2.IMWRITE_JPEG_QUALITY, 80])
         cap.release()
 
         # Hapus raw video
         if os.path.exists(raw_video):
             os.remove(raw_video)
+    
+    gc.collect()
 
 def gen_frames():
+    """Video feed dengan resolusi lebih rendah untuk hemat bandwidth"""
     global current_shake_count, prev_hip_x, recording, out, last_frame
     cap = cv2.VideoCapture(0)
+    
     if not cap.isOpened():
-        print("Error: Tidak bisa membuka kamera.")
         return
 
+    # Set resolusi kamera lebih rendah untuk hemat resource
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap.set(cv2.CAP_PROP_FPS, 20)  # 20 FPS cukup
+
+    frame_skip = 0
+    
     while True:
         success, frame = cap.read()
         if not success:
@@ -229,33 +392,29 @@ def gen_frames():
         if recording and out is not None:
             out.write(frame)
 
-        last_frame = frame.copy()
+        # Skip frames untuk hemat CPU (process setiap 2 frame)
+        frame_skip += 1
+        if frame_skip % 2 == 0:
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = pose.process(rgb_frame)
 
-        # Hanya proses pose untuk deteksi shake, TIDAK GAMBAR LANDMARKS
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = pose.process(rgb_frame)
+            if results.pose_landmarks:
+                hip = results.pose_landmarks.landmark[23]
+                detect_shake(hip.x)
 
-        if results.pose_landmarks:
-            hip = results.pose_landmarks.landmark[23]
-            detect_shake(hip.x)
-
-            # Tampilkan counter shake saja (opsional, bisa dihapus juga)
-
-
-        ret, buffer = cv2.imencode('.jpg', frame)
+        # Encode dengan quality rendah untuk hemat bandwidth
+        ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
         if not ret:
             continue
-        frame = buffer.tobytes()
+        
+        frame_bytes = buffer.tobytes()
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
     cap.release()
 
-# === BARU: Generate QR Code dinamis ===
 @app.route('/generate-qr')
 def generate_qr():
-    from io import BytesIO
-    import qrcode
     url = request.args.get('url')
     if not url:
         return "URL required", 400
@@ -268,10 +427,7 @@ def generate_qr():
     buf = BytesIO()
     img.save(buf, format='PNG')
     buf.seek(0)
-
     return send_file(buf, mimetype='image/png')
-
-# --- Routes ---
 
 @app.route('/')
 def index():
@@ -299,28 +455,28 @@ def reset_shake_count():
 
 @app.route('/start_recording', methods=['POST'])
 def start_recording():
-    global recording, out, video_filename, user_data, processing_status
+    global recording, out, user_data, processing_status
     data = request.get_json()
     nama = data.get('nama', 'user').replace(" ", "_")
     ktp6 = data.get('ktp6', '000000')[:6]
     impian = data.get('impian', 'MIMPI JADI POL')
     frame_choice = data.get('frame_choice', 'frame1.png')
-    dream_key = data.get('dream_key', 'bebas_cicilan')  # <-- tambahkan ini
+    dream_key = data.get('dream_key', 'bebas_cicilan')
 
     user_data = {
         "nama": nama,
         "ktp6": ktp6,
         "impian": impian.upper(),
         "frame_choice": frame_choice,
-        "dream_key": dream_key  # <-- simpan key dream
+        "dream_key": dream_key
     }
     
-    # Reset processing status
     processing_status = {"status": "idle", "progress": 0}
 
     raw_video = f"hasilnari/{nama}_{ktp6}_raw.mp4"
-    fourcc = cv2.VideoWriter_fourcc(*'VP80')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     cap = cv2.VideoCapture(0)
+    
     if not cap.isOpened():
         return jsonify({"status": "error", "message": "Camera not available"}), 500
 
@@ -336,14 +492,15 @@ def start_recording():
 
 @app.route('/stop_recording')
 def stop_recording():
-    global recording, out, last_frame, user_data
+    global recording, out, user_data
+    
     if recording and out is not None:
         try:
             time.sleep(0.3)
             if out.isOpened():
                 out.release()
-        except Exception as e:
-            print(f"Error releasing raw video: {e}")
+        except:
+            pass
         out = None
 
     recording = False
@@ -353,9 +510,8 @@ def stop_recording():
 
     nama = user_data['nama']
     ktp6 = user_data['ktp6']
-    impian = user_data['impian']
     frame_choice = user_data['frame_choice']
-    dream_key = user_data['dream_key']  # <-- ambil dream_key
+    dream_key = user_data['dream_key']
 
     raw_video = f"hasilnari/{nama}_{ktp6}_raw.mp4"
     final_video = f"hasilnari/{nama}_{ktp6}_final.mp4"
@@ -364,10 +520,10 @@ def stop_recording():
     if not os.path.exists(raw_video):
         return jsonify({"status": "error", "message": "Raw video not found"})
 
-    # Mulai processing di background thread
+    # Background thread
     thread = threading.Thread(
         target=process_video_async,
-        args=(raw_video, final_video, frame_overlay, impian, dream_key)  # <-- kirim dream_key
+        args=(raw_video, final_video, frame_overlay, user_data.get('impian'), dream_key)
     )
     thread.daemon = True
     thread.start()
@@ -376,7 +532,6 @@ def stop_recording():
 
 @app.route('/check_processing')
 def check_processing():
-    """Endpoint untuk mengecek status processing"""
     global processing_status
     return jsonify(processing_status)
 
@@ -391,7 +546,6 @@ def serve_results(filename):
 @app.route('/form')
 def form():
     global processing_status
-    # Reset processing status saat kembali ke form
     processing_status = {"status": "idle", "progress": 0}
     return render_template('form.html')
 
@@ -414,8 +568,6 @@ def loading_result():
 @app.route('/final_result')
 def final_result():
     global user_data, processing_status
-    
-    # Reset processing status agar tidak loop
     processing_status = {"status": "idle", "progress": 0}
     
     if not user_data:
@@ -429,4 +581,8 @@ def final_result():
     return render_template('final_result.html', user=user_data)
 
 if __name__ == '__main__':
-    app.run(debug=True, threaded=True)
+    print("=" * 50)
+    print("Starting Flask App...")
+    print("=" * 50)
+    check_ffmpeg_installed()
+    app.run(debug=True, threaded=True, host='127.0.0.1', port=5000)
