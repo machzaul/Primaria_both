@@ -10,6 +10,9 @@ import threading
 import qrcode
 import subprocess
 import gc  # Garbage collector untuk memory management
+import random
+import string
+
 
 app = Flask(__name__)
 
@@ -340,8 +343,27 @@ def create_final_video_light(raw_video_path, output_path, frame_overlay_path, dr
     
     return True
 
-def process_video_async(raw_video, final_video, frame_overlay, impian, dream_key):
-    """Background processing"""
+def process_video_async(raw_video, frame_overlay, impian, dream_key):
+    """Background processing dengan unique code"""
+    global user_data
+
+    # Ambil data user
+    nama = user_data.get('nama', 'user').replace('_', ' ')  # Kembalikan spasi untuk tampilan
+    ktp6 = user_data.get('ktp6', '000000')[:6]
+
+    # Generate unique code SEKARANG
+    unique_code = generate_unique_code()
+    
+    # Simpan ke user_data (untuk ditampilkan di final_result.html)
+    user_data['unique_code'] = unique_code
+
+    # Buat nama file final sesuai format: Nama-6digitKTP-UniqueCode.mp4
+    # Ganti spasi dengan underscore untuk nama file
+    safe_nama = user_data.get('nama', 'user')  # nama sudah underscore dari form
+    final_filename = f"{safe_nama}-{ktp6}-{unique_code}.mp4"
+    final_video = os.path.join("hasilnari", final_filename)
+
+    # Jalankan proses video
     success = create_final_video_light(
         raw_video_path=raw_video,
         output_path=final_video,
@@ -350,16 +372,16 @@ def process_video_async(raw_video, final_video, frame_overlay, impian, dream_key
     )
     
     if success:
-        nama = user_data.get('nama', 'user')
-        ktp6 = user_data.get('ktp6', '000000')
-        
+        # Simpan nama file final ke user_data untuk referensi di template
+        user_data['final_video_filename'] = final_filename
+
         # Buat thumbnail
         cap = cv2.VideoCapture(final_video)
         ret, thumb = cap.read()
         if ret:
-            # Thumbnail kecil untuk hemat space
             thumb = cv2.resize(thumb, (360, 640), interpolation=cv2.INTER_AREA)
-            cv2.imwrite(f"results/{nama}_{ktp6}_thumbnail.jpg", thumb, 
+            thumb_filename = f"{safe_nama}_{ktp6}_thumbnail.jpg"
+            cv2.imwrite(os.path.join("results", thumb_filename), thumb, 
                        [cv2.IMWRITE_JPEG_QUALITY, 80])
         cap.release()
 
@@ -412,6 +434,12 @@ def gen_frames():
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
     cap.release()
+
+def generate_unique_code():
+    # 5 karakter acak (huruf besar + angka), lalu akhiri dengan '7'
+    chars = string.ascii_uppercase + string.digits
+    prefix = ''.join(random.choices(chars, k=5))
+    return prefix + '7'
 
 @app.route('/generate-qr')
 def generate_qr():
@@ -512,18 +540,18 @@ def stop_recording():
     ktp6 = user_data['ktp6']
     frame_choice = user_data['frame_choice']
     dream_key = user_data['dream_key']
+    impian = user_data.get('impian', 'MIMPI JADI POL')
 
     raw_video = f"hasilnari/{nama}_{ktp6}_raw.mp4"
-    final_video = f"hasilnari/{nama}_{ktp6}_final.mp4"
     frame_overlay = f"static/assets/{frame_choice}"
 
     if not os.path.exists(raw_video):
         return jsonify({"status": "error", "message": "Raw video not found"})
 
-    # Background thread
+    # Jalankan thread dengan parameter sesuai fungsi baru
     thread = threading.Thread(
         target=process_video_async,
-        args=(raw_video, final_video, frame_overlay, user_data.get('impian'), dream_key)
+        args=(raw_video, frame_overlay, impian, dream_key)
     )
     thread.daemon = True
     thread.start()
@@ -579,6 +607,10 @@ def final_result():
             "dream_key": "bebas_cicilan"
         }
     return render_template('final_result.html', user=user_data)
+
+@app.route('/download')
+def download():
+    return render_template('download.html')
 
 if __name__ == '__main__':
     print("=" * 50)

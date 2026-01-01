@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Download Video Joget - PRIMACTION</title>
+    <style>
+        /* === GLOBAL STYLES === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'DM Sans', Arial, sans-serif;
+        }
+
+        body {
+            background: url('/assets/BG (2).png') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: white;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* === DECORATIVE CORNERS === */
+        .corner-top-right {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: clamp(150px, 20vw, 250px);
+            height: clamp(150px, 20vw, 250px);
+            background: linear-gradient(135deg, transparent 50%, rgba(255,0,0,0.3) 50%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .corner-bottom-left {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: clamp(150px, 20vw, 250px);
+            height: clamp(150px, 20vw, 250px);
+            background: linear-gradient(-45deg, transparent 50%, rgba(255,0,0,0.3) 50%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* === HEADER === */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .header img {
+            height: clamp(50px, 8vw, 80px);
+            width: auto;
+        }
+
+        /* === MAIN CONTENT AREA === */
+        .content-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 20px 120px;
+            overflow-y: auto;
+        }
+
+        /* === SHARED CONTAINER STYLES === */
+        .page-container {
+            width: 100%;
+            max-width: 500px;
+            padding: 0 20px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            text-align: center;
+        }
+
+        .page-container.active {
+            display: flex;
+        }
+
+        .page-title {
+            font-size: clamp(1.3rem, 5vw, 1.8rem);
+            font-weight: 300;
+            line-height: 1.3;
+            margin-bottom: 10px;
+        }
+
+        .page-subtitle {
+            font-size: clamp(0.95rem, 3vw, 1.1rem);
+            color: #ddd;
+            line-height: 1.4;
+        }
+
+        /* === FORM STYLES === */
+        .form-group {
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+            color: #ddd;
+            font-weight: 400;
+        }
+
+        input {
+            width: 100%;
+            padding: 16px;
+            background: rgba(20,20,20,0.8);
+            border: 1.5px solid #e5e5e5;
+            color: white;
+            border-radius: 8px;
+            font-size: clamp(1rem, 3vw, 1.1rem);
+            transition: all 0.3s ease;
+        }
+
+        input::placeholder {
+            color: #666;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #FE0E14;
+            background: rgba(25,25,25,0.9);
+        }
+
+        /* === VIDEO FRAME === */
+        .video-frame {
+            position: relative;
+            width: 100%;
+            max-width: 280px;
+            aspect-ratio: 9/16;
+            border: 4px solid #FE0E14;
+            border-radius: 15px;
+            overflow: hidden;
+            background: black;
+            box-shadow: 0 0 30px rgba(254, 14, 20, 0.6);
+            margin: 20px 0;
+        }
+
+        .video-frame::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                to bottom,
+                rgba(0,0,0,0.5) 0%,
+                rgba(0,0,0,0) 20%,
+                rgba(0,0,0,0) 80%,
+                rgba(0,0,0,0.5) 100%
+            );
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .video-player {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-overlay-text {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: clamp(0.75rem, 2vw, 0.9rem);
+            text-align: center;
+            z-index: 2;
+        }
+
+        /* === LOADING SPINNER === */
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 6px solid #FE0E14;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* === BOTTOM BUTTON CONTAINER === */
+        .bottom-button-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 70%, transparent 100%);
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+        }
+
+        .bottom-button-container .btn {
+            width: 100%;
+            max-width: 500px;
+            padding: 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: clamp(1.1rem, 3.5vw, 1.3rem);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .btn-search {
+            background: #2a2a2a;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .btn-search.active {
+            background: linear-gradient(90deg, #FE0E14 0%, #98080C 100%);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(254, 14, 20, 0.4);
+        }
+
+        .btn-search.active:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(254, 14, 20, 0.6);
+        }
+
+        .btn-download,
+        .btn-back {
+            background: linear-gradient(90deg, #FE0E14 0%, #98080C 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(254, 14, 20, 0.4);
+        }
+
+        .btn-download:hover,
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(254, 14, 20, 0.6);
+        }
+
+        .btn-back {
+            background: #2a2a2a;
+            color: white;
+            box-shadow: none;
+        }
+
+        .btn-back:hover {
+            background: #333;
+        }
+
+        /* === ERROR STYLES === */
+        .error-title {
+            font-size: clamp(1.3rem, 5vw, 1.8rem);
+            margin-bottom: 10px;
+            color: #ff4444;
+            font-weight: 300;
+        }
+
+        /* === RESPONSIVE ADJUSTMENTS === */
+        @media (max-width: 768px) {
+            .content-wrapper {
+                padding: 90px 15px 100px;
+            }
+            
+            .video-frame {
+                max-width: 260px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .content-wrapper {
+                padding: 80px 10px 90px;
+            }
+            
+            .video-frame {
+                max-width: 240px;
+            }
+
+            .bottom-button-container {
+                padding: 15px;
+            }
+
+            .bottom-button-container .btn {
+                padding: 16px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .video-frame {
+                max-width: 320px;
+            }
+        }
+
+        /* === LANDSCAPE MODE === */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .content-wrapper {
+                padding: 70px 20px 80px;
+            }
+
+            .video-frame {
+                max-width: 200px;
+            }
+
+            .page-container {
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <img src="{{ url_for('static', filename='assets/logoprimaction.png') }}" alt="PRIMACTION Logo">
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="content-wrapper">
+        <!-- SEARCH PAGE -->
+        <div class="page-container active" id="searchPage">
+            <h1 class="page-title">Download video joget polmu di sini</h1>
+            <p class="page-subtitle">Masukkan 6 digit terakhir KTP untuk mencari video kamu</p>
+            
+            <div class="form-group">
+                <label for="ktp6">6 Digit Terakhir KTP</label>
+                <input type="text" id="ktp6" maxlength="6" placeholder="Masukkan 6 Digit Terakhir No. KTP" required>
+            </div>
+        </div>
+
+        <!-- LOADING PAGE -->
+        <div class="page-container" id="loadingPage">
+            <h1 class="page-title">Video Joget Polmu</h1>
+            <div class="video-frame">
+                <div class="spinner" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"></div>
+            </div>
+            <p class="page-subtitle">Video kamu sedang di upload<br>Coba lagi beberapa saat lagi ya.</p>
+        </div>
+
+        <!-- VIDEO PAGE -->
+        <div class="page-container" id="videoPage">
+            <h1 class="page-title">Video Joget Polmu</h1>
+            
+            <div class="video-frame">
+                <video class="video-player" autoplay muted loop playsinline preload="auto" id="resultVideo">
+                    <!-- Source akan diisi oleh JavaScript -->
+                </video>
+                <div class="video-overlay-text">
+                    MIMPI GUE BEBAS DARI CICILAN<br>
+                    JOGETIN AJA WALAU PELAN-PELAN
+                </div>
+            </div>
+
+            <p class="page-subtitle">Video kamu sedang di upload<br>Coba lagi beberapa saat lagi ya.</p>
+        </div>
+
+        <!-- ERROR PAGE -->
+        <div class="page-container" id="errorPage">
+            <h1 class="error-title">Video Tidak Ditemukan</h1>
+            <p class="page-subtitle">Maaf, video dengan nomor KTP tersebut tidak ditemukan.<br>Silakan coba masukkan 6 digit terakhir KTP yang benar.</p>
+        </div>
+    </div>
+
+    <!-- Bottom Button (Fixed at bottom) -->
+    <div class="bottom-button-container">
+        <button type="button" class="btn btn-search" id="searchBtn" disabled>Cari</button>
+        <button type="button" class="btn btn-download" id="downloadBtn" style="display: none;">Download</button>
+        <button type="button" class="btn btn-back" id="backBtn" style="display: none;">Kembali ke Pencarian</button>
+    </div>
+
+    <script>
+        // DOM Elements
+        const searchPage = document.getElementById('searchPage');
+        const loadingPage = document.getElementById('loadingPage');
+        const videoPage = document.getElementById('videoPage');
+        const errorPage = document.getElementById('errorPage');
+        const ktpInput = document.getElementById('ktp6');
+        const searchBtn = document.getElementById('searchBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const backBtn = document.getElementById('backBtn');
+        const resultVideo = document.getElementById('resultVideo');
+
+        // State variables
+        let currentKTP = '';
+
+        // Validate KTP input
+        function validateKTP() {
+            const ktpValue = ktpInput.value.trim();
+            searchBtn.disabled = true;
+            searchBtn.classList.remove('active');
+
+            if (!ktpValue) return;
+
+            if (ktpValue.length !== 6 || !/^\d{6}$/.test(ktpValue)) {
+                searchBtn.disabled = true;
+                searchBtn.classList.remove('active');
+                return;
+            }
+
+            searchBtn.disabled = false;
+            searchBtn.classList.add('active');
+        }
+
+        // Search button click handler
+        searchBtn.addEventListener('click', function() {
+            if (searchBtn.disabled) return;
+
+            currentKTP = ktpInput.value.trim();
+            showLoadingPage();
+            searchVideo(currentKTP);
+        });
+
+        // Download button
+        downloadBtn.addEventListener('click', function() {
+            if (!currentKTP) return;
+            
+            const videoUrl = `/hasilnari/${currentKTP}_final.mp4`;
+            const a = document.createElement('a');
+            a.href = videoUrl;
+            a.download = `joget_polmu_${currentKTP}.mp4`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        // Back button
+        backBtn.addEventListener('click', function() {
+            hideAllPages();
+            searchPage.classList.add('active');
+            showButton('search');
+            ktpInput.value = '';
+            ktpInput.focus();
+            validateKTP();
+        });
+
+        // Input event listener
+        ktpInput.addEventListener('input', validateKTP);
+
+        // Enter key support
+        ktpInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !searchBtn.disabled) {
+                searchBtn.click();
+            }
+        });
+
+        // Show loading page
+        function showLoadingPage() {
+            hideAllPages();
+            loadingPage.classList.add('active');
+            showButton('back');
+        }
+
+        // Show video page with the found video
+        function showVideoPage(videoUrl) {
+            hideAllPages();
+            videoPage.classList.add('active');
+            showButton('download');
+            
+            // Set video source
+            resultVideo.src = videoUrl;
+            resultVideo.load();
+            
+            // Reset video on load
+            resultVideo.addEventListener('loadeddata', function() {
+                this.play().catch(e => {
+                    console.log('Autoplay failed:', e);
+                });
+            });
+        }
+
+        // Show error page
+        function showErrorPage() {
+            hideAllPages();
+            errorPage.classList.add('active');
+            showButton('back');
+        }
+
+        // Hide all pages
+        function hideAllPages() {
+            searchPage.classList.remove('active');
+            loadingPage.classList.remove('active');
+            videoPage.classList.remove('active');
+            errorPage.classList.remove('active');
+        }
+
+        // Show appropriate button
+        function showButton(type) {
+            searchBtn.style.display = 'none';
+            downloadBtn.style.display = 'none';
+            backBtn.style.display = 'none';
+
+            if (type === 'search') {
+                searchBtn.style.display = 'block';
+            } else if (type === 'download') {
+                downloadBtn.style.display = 'block';
+            } else if (type === 'back') {
+                backBtn.style.display = 'block';
+            }
+        }
+
+        // Search video function
+        async function searchVideo(ktp) {
+            const videoUrl = `/hasilnari/${ktp}_final.mp4`;
+
+            try {
+                // Cek apakah file ada dengan HEAD request
+                const response = await fetch(videoUrl, { method: 'HEAD' });
+                
+                if (response.ok) {
+                    showVideoPage(videoUrl);
+                } else {
+                    showErrorPage();
+                }
+            } catch (error) {
+                console.error("Error checking video:", error);
+                showErrorPage();
+            }
+        }
+
+        // Initialize
+        ktpInput.focus();
+        showButton('search');
+    </script>
+</body>
+</html>

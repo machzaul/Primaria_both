@@ -181,6 +181,49 @@
             display: block;
         }
 
+        /* UNIQUE CODE BOX - STYLING SESUAI GAMBAR */
+        .unique-code-box {
+            margin-top: 3vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .code-display {
+            background: white;
+            color: black;
+            font-size: 3.5vw;
+            font-weight: bold;
+            padding: 1.5vw 3vw;
+            border: 2px solid #333;
+            border-radius: 0.8vw;
+            text-align: center;
+            letter-spacing: 0.1vw;
+            box-shadow: 0 0 1vw rgba(0,0,0,0.3);
+            min-width: 30vw;
+            max-width: 60vw;
+            word-break: break-all;
+        }
+
+        /* RESPONSIF UNTUK TV BESAR */
+        @media (min-width: 1024px) {
+            .code-display {
+                font-size: 2.5vw;
+                padding: 1vw 2vw;
+                border-radius: 0.5vw;
+                min-width: 25vw;
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .code-display {
+                font-size: 2vw;
+                padding: 0.8vw 1.5vw;
+                border-radius: 0.4vw;
+                min-width: 20vw;
+            }
+        }
+
         /* RESPONSIF UNTUK TV BESAR */
         @media (min-width: 1024px) {
             .qr-code-container {
@@ -279,24 +322,17 @@
 
         <div class="frame-container">
             <video class="frame-bg" autoplay muted loop playsinline preload="auto" id="finalVideo">
-                <source src="/hasilnari/{{ user.nama }}_{{ user.ktp6 }}_final.mp4" type="video/mp4">
+                <source src="/hasilnari/{{ user.nama }}-{{ user.ktp6 }}-{{ user.unique_code }}.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
             <div class="video-loading" id="videoLoading">
                 <div style="color: white; font-size: 1.5vw;">Loading video...</div>
             </div>
-            <!-- QR CODE DI SUDUT KANAN BAWAH VIDEO -->
-            <div class="qr-code-container">
-                <!-- Bangun URL video lengkap -->
-                {% set video_url = url_for('serve_hasilnari', filename=user.nama + '_' + user.ktp6 + '_final.mp4', _external=True) %}
-                <img src="/generate-qr?url={{ video_url | urlencode }}" alt="Scan to download" />
-            </div>
         </div>
 
-        <!-- QR Info dalam dua baris -->
-        <div class="qr-info">
-            <span class="qr-line">Scan QR code disamping totem untuk</span>
-            <span class="qr-line">mendownload hasil jogetmu!</span>
+        <!-- UNIQUE CODE -->
+        <div class="unique-code-box">
+            <div class="code-display">{{ user.unique_code }}</div>
         </div>
 
         <div class="timer" id="timer">Halaman tertutup dalam 60 detik.</div>
