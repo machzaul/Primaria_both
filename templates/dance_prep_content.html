@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Siap Joget! - PRIMACTION</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* === BODY: gunakan background dari halaman form === */
+        body {
+            background: url('/assets/BG (2).png') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            position: relative;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Video disembunyikan saat loading */
+        .video-background {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        .header {
+            position: absolute;
+            top: 3%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .header img {
+            height: 80px;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            z-index: 20;
+            border-radius: 20px;
+            max-width: 80%;
+        }
+
+        .loading-title {
+            font-size: 2.5vw;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .progress-bar-container {
+            width: 90%;
+            max-width: 450px;
+            height: 30px;
+            background: #700;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #C3C3C3 21%, #FFFFFF 55%, #999999 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+            border: #700 1px solid;
+            box-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        /* Countdown & Dance */
+        .countdown-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 30;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .countdown-number {
+            font-size: 10vw;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 20px rgba(255,255,255,0.9);
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        .countdown-text {
+            font-size: 3vw;
+            margin-top: 10px;
+            color: white;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+
+        .dance-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 25;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .timer-display {
+            position: absolute;
+            top: 12%;
+            font-size: 3vw;
+            color: white;
+            z-index: 30;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        /* === METER BAR DENGAN GAMBAR PNG === */
+        .meter-container {
+            position: absolute;
+            bottom: 0%;
+            width: 60%;
+            max-width: 300px;
+            z-index: 30;
+        }
+
+        .meter {
+            width: 100%;
+            height: 150px;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .meter-bg {
+            width: 100%;
+            height: 100%;
+            background: url('/static/assets/bar.png') no-repeat center bottom;
+            background-size: contain;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* 🔸 POINTER DENGAN UI HARDCODE (CSS) — seperti kode kedua */
+        .meter-pointer {
+            position: absolute;
+            bottom: 5px; /* jarak dari bawah */
+            left: 50%;
+            transform: translateX(-50%) rotate(0deg);
+            width: 10px;          /* lebar tetap ramping */
+            height: 50px;         /* 🔼 lebih panjang! */
+            background: white;
+            border: 1.5px solid black; /* 🔲 border hitam */
+            border-radius: 2px;   /* ujung membulat */
+            transition: transform 0.3s ease;
+            z-index: 2;
+
+            /* Titik putar: dari ujung bawah agar tidak melompat */
+            transform-origin: 50% 100%;
+        }
+
+        /* === OVERLAY "MANTAP!!" === */
+        .mantap-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 35;
+            pointer-events: none;
+        }
+
+        .phase-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 35;
+            pointer-events: none;
+        }
+
+        .phase-image {
+            max-width: 80vw;
+            max-height: 60vh;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .mantap-image {
+            max-width: 80vw;
+            max-height: 60vh;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .instruction-box {
+            position: absolute;
+            bottom: 12%; /* 🔽 lebih ke bawah dari 18% → 12% */
+            left: 50%;
+            transform: translateX(-50%); /* agar benar-benar center secara horizontal */
+            width: 85%; /* sedikit lebih lebar untuk konsistensi */
+            max-width: 500px;
+            padding: clamp(12px, 3.5vw, 18px); /* responsif: min 12px, ideal 3.5% viewport, max 18px */
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #f00;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+            z-index: 30;
+            font-size: clamp(14px, 2.8vw, 18px); /* teks responsif */
+            line-height: 1.4;
+        }
+
+        .instruction-box::before {
+            content: "!";
+            position: absolute;
+            top: -16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f00;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: clamp(14px, 2.5vw, 16px);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Video Stream (awalnya disembunyikan) -->
+    <img src="{{ url_for('video_feed') }}" class="video-background" alt="Video Stream" id="videoBackground">
+
+    <!-- Header tetap di atas -->
+    <div class="header">
+        <img src="/assets/logoprimaction.png" alt="PRIMACTION Logo">
+    </div>
+
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-title">Ayo siap-siap joget!<br>Mimpi nggak cuma dipikirin, tapi dirayain!</div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+    </div>
+
+    <!-- Countdown Screen -->
+    <div class="countdown-screen" id="countdownScreen">
+        <div class="countdown-number" id="countdownNumber">3</div>
+        <div class="countdown-text" id="countdownText">SIAP?</div>
+        <div class="instruction-box">
+            Joget seasyik mungkin dalam waktu<br><strong>10 detik sampai bar terisi penuh</strong>
+        </div>
+    </div>
+
+    <!-- Dance Screen -->
+    <div class="dance-screen" id="danceScreen">
+        <div class="timer-display" id="timerDisplay">10s</div>
+
+        <div class="meter-container">
+            <div class="meter">
+                <div class="meter-bg"></div>
+                <div class="meter-pointer" id="meterPointer"></div>
+            </div>
+        </div>
+
+        <!-- Overlay Mantap -->
+        <div class="mantap-overlay" id="mantapOverlay">
+            <img src="/static/assets/mantap.png" alt="MANTAP!!" class="mantap-image">
+        </div>
+
+        <!-- Overlay Fase Awal (Merah) -->
+        <div class="phase-overlay" id="overlayMerah" style="display: none;">
+            <img src="/static/assets/merah.png" alt="Awal" class="phase-image">
+        </div>
+
+        <!-- Overlay Fase Tengah (Kuning) -->
+        <div class="phase-overlay" id="overlayKuning" style="display: none;">
+            <img src="/static/assets/kuning.png" alt="Tengah" class="phase-image">
+        </div>
+
+        <!-- Overlay Fase Akhir (Hijau) -->
+        <div class="phase-overlay" id="overlayHijau" style="display: none;">
+            <img src="/static/assets/hijau.png" alt="Akhir" class="phase-image">
+        </div>
+
+        
+    </div>
+
+
+    <audio id="clickSound" preload="auto">
+        <source src="{{ url_for('static', filename='assets/sound/click.wav') }}" type="audio/wav">
+    </audio>
+    <!-- Sound Efek Countdown -->
+    <audio id="countdownSound" preload="auto">
+        <source src="{{ url_for('static', filename='assets/sound/click.wav') }}" type="audio/wav">
+    </audio>
+
+    <script>
+        function navigateTo(url) {
+            window.parent.postMessage({ type: 'navigateTo', url: url }, '*');
+        }
+        const clickSound = document.getElementById('clickSound');
+        if (clickSound) clickSound.volume = 0.5;
+
+        function playClickSound() {
+            if (clickSound) {
+                clickSound.currentTime = 0;
+                clickSound.play().catch(() => {});
+            }
+        }
+
+        // Gunakan pointerup — satu event untuk semua input
+        document.body.addEventListener('pointerup', playClickSound, { passive: true });
+
+        // State
+        let isDancing = false;
+        let countdown = 3;
+        let danceTime = 10;
+        let meterValue = 0;
+        let shakeCount = 0;
+        let prevHipX = null;
+        let mantapShown = false;
+
+        // Ambil data dari localStorage
+        let nama = localStorage.getItem('userNama') || 'User';
+        let ktp6 = (localStorage.getItem('userKTP6') || '000000').padEnd(6, '0').substring(0, 6);
+        let dreamKey = localStorage.getItem('userDream') || 'bebas_cicilan';
+        let frame = localStorage.getItem('selectedFrame') || '1';
+
+        const dreamMap = {
+            'bebas_cicilan': 'BEBAS DARI CICILAN',
+            'rumah_impian': 'PUNYA RUMAH IMPAN',
+            'keliling_dunia': 'KELILING DUNIA',
+            'sukses_berbisnis': 'SUKSES BISNIS',
+            'karir_melesat': 'KARIR MELESAT',
+            'ketemu_jodoh': 'KETEMU JODOH',
+            'keluarga_bahagia': 'KELUARGA BAHAGIA'
+        };
+        const impian = dreamMap[dreamKey] || 'MIMPI JADI POL';
+
+        const frameMap = {
+            '1': 'frame1.png',
+            '2': 'frame2.png',
+            '3': 'frame3.png',
+            '4': 'frame4.png'
+        };
+        const frame_choice = frameMap[frame] || 'frame1.png';
+
+        // Elements
+        const loadingScreen = document.getElementById('loadingScreen');
+        const progressBar = document.getElementById('progressBar');
+        const countdownScreen = document.getElementById('countdownScreen');
+        const countdownNumber = document.getElementById('countdownNumber');
+        const countdownText = document.getElementById('countdownText');
+        const danceScreen = document.getElementById('danceScreen');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const meterPointer = document.getElementById('meterPointer');
+        const videoBackground = document.getElementById('videoBackground');
+        const mantapOverlay = document.getElementById('mantapOverlay');
+
+        startLoading();
+
+        function startLoading() {
+            let progress = 0;
+            const targetProgress = 95; // tahan di 95% sampai kamera siap
+            const interval = setInterval(() => {
+                if (progress < targetProgress) {
+                    progress += 5;
+                    progressBar.style.width = progress + '%';
+                }
+            }, 100);
+
+            // Tunggu sampai video stream berhasil dimuat
+            videoBackground.onload = () => {
+                // Pastikan progress sudah minimal 95%
+                if (progress < 95) {
+                    progressBar.style.width = '95%';
+                }
+
+                // Naikkan ke 100% dan lanjutkan
+                setTimeout(() => {
+                    progressBar.style.width = '100%';
+                    setTimeout(() => {
+                        clearInterval(interval);
+                        videoBackground.style.display = 'block';
+                        setTimeout(startCountdown, 300);
+                    }, 200);
+                }, 300);
+            };
+
+            videoBackground.onerror = () => {
+                // Opsional: tampilkan pesan error jika kamera gagal
+                console.error("Kamera gagal dimuat.");
+                // Bisa tambahkan retry atau fallback di sini
+                // Untuk sementara, tetap lanjutkan setelah timeout
+                setTimeout(() => {
+                    if (progress < 95) {
+                        progressBar.style.width = '95%';
+                    }
+                    setTimeout(() => {
+                        progressBar.style.width = '100%';
+                        clearInterval(interval);
+                        // Tetap lanjutkan meski kamera gagal (opsional)
+                        setTimeout(startCountdown, 300);
+                    }, 500);
+                }, 2000);
+            };
+        }
+
+        function startCountdown() {
+            loadingScreen.style.display = 'none';
+            countdownScreen.style.display = 'flex';
+
+            const countdownSound = document.getElementById('countdownSound');
+            if (countdownSound) {
+                countdownSound.volume = 0.9; // Atur volume sesuai kebutuhan
+            }
+
+            const countInterval = setInterval(() => {
+                if (countdown > 0) {
+                    // Tampilkan angka
+                    countdownNumber.textContent = countdown;
+                    
+                    // Update teks
+                    switch(countdown) {
+                        case 3: countdownText.textContent = "SIAP?"; break;
+                        case 2: countdownText.textContent = "OKE!"; break;
+                        case 1: countdownText.textContent = "GAS!"; break;
+                    }
+
+                    // 🔊 Mainkan suara countdown
+                    if (countdownSound) {
+                        countdownSound.currentTime = 0;
+                        countdownSound.play().catch(e => console.log("Countdown sound delayed:", e));
+                    }
+
+                    countdown--;
+                } else {
+                    clearInterval(countInterval);
+                    startDance();
+                }
+            }, 1000);
+        }
+
+        function startDance() {
+
+            const bgm = document.getElementById('globalBGM');
+            if (bgm) {
+                bgm.currentTime = 0;
+                bgm.play().catch(e => console.warn("Gagal play BGM saat joget:", e));
+            }
+
+            fetch('/reset_shake_count')
+                .then(() => {
+                    return fetch('/start_recording', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            nama,
+                            ktp6,
+                            impian,
+                            frame_choice,
+                            dream_key: dreamKey  // ✅ KIRIM dream_key KE BACKEND
+                        })
+                    });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        countdownScreen.style.display = 'none';
+                        danceScreen.style.display = 'flex';
+                        isDancing = true;
+                        meterValue = 0;
+                        shakeCount = 0;
+                        prevHipX = null;
+                        updateMeter(0);
+
+                        const timerInterval = setInterval(() => {
+                            danceTime--;
+                            timerDisplay.textContent = danceTime + 's';
+                            if (danceTime <= 0) {
+                                clearInterval(timerInterval);
+                                stopDanceAndProcess();
+                            }
+                        }, 1000);
+                    } else {
+                        alert("Gagal memulai rekaman.");
+                    }
+                })
+                .catch(err => {
+                    console.error("Error:", err);
+                    alert("Terjadi kesalahan.");
+                });
+        }
+
+        let currentPhase = null; // 'merah', 'kuning', 'hijau', atau null
+
+        function updateMeter(value) {
+            value = Math.max(0, Math.min(120, value));
+
+            // Pemetaan sudut pointer
+            const angle = -65 + (value / 90) * 120;
+            meterPointer.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+
+            // Tentukan fase berdasarkan nilai
+            let newPhase = null;
+            if (value >= 80) {
+                newPhase = 'hijau';
+            } else if (value >= 40) {
+                newPhase = 'kuning';
+            } else if (value > 0) {
+                newPhase = 'merah';
+            }
+
+            // Hanya update jika fase berubah
+            if (newPhase !== currentPhase) {
+                // Sembunyikan semua overlay fase
+                document.getElementById('overlayMerah').style.display = 'none';
+                document.getElementById('overlayKuning').style.display = 'none';
+                document.getElementById('overlayHijau').style.display = 'none';
+
+                // Tampilkan yang sesuai
+                if (newPhase === 'merah') {
+                    document.getElementById('overlayMerah').style.display = 'flex';
+                } else if (newPhase === 'kuning') {
+                    document.getElementById('overlayKuning').style.display = 'flex';
+                } else if (newPhase === 'hijau') {
+                    document.getElementById('overlayHijau').style.display = 'flex';
+                }
+
+                currentPhase = newPhase;
+            }
+
+            // Tetap tampilkan "MANTAP!!" saat nilai tinggi (opsional)
+            if (value >= 70 && !mantapShown) {
+                mantapShown = true;
+                mantapOverlay.style.display = 'flex';
+                setTimeout(() => {
+                    mantapOverlay.style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        function stopDanceAndProcess() {
+            document.getElementById('overlayMerah').style.display = 'none';
+            document.getElementById('overlayKuning').style.display = 'none';
+            document.getElementById('overlayHijau').style.display = 'none';
+            mantapOverlay.style.display = 'none';
+
+            isDancing = false;
+            danceScreen.style.display = 'none';
+            fetch('/stop_recording')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        navigateTo('/loading-result-content');
+                    } else {
+                        alert("Gagal menyimpan video");
+                    }
+                })
+                .catch(err => {
+                    console.error("Error:", err);
+                    alert("Terjadi kesalahan");
+                });
+        }
+
+        // Polling shake count selama tarian
+        setInterval(async () => {
+            if (!isDancing) return;
+            try {
+                const res = await fetch('/get_shake_count');
+                const data = await res.json();
+                shakeCount = data.shake_count;
+                meterValue = Math.min(100, shakeCount * 4); // 1 shake = 5%
+                updateMeter(meterValue);
+            } catch(e) {
+                console.log("Error fetching shake count");
+            }
+        }, 500);
+    </script>
+
+</body>
+</html>

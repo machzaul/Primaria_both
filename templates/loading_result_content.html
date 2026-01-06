@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Processing...</title>
+    <style>
+        body {
+            background: url('/assets/BG (2).png') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            position: relative;
+        }
+        .header {
+            position: absolute;
+            top: 3%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+        .header img {
+            height: 80px;
+            scale: 1.9;
+        }
+        .loading-text {
+            font-size: 2vw;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .progress-bar-container {
+            width: 90%;
+            max-width: 450px;
+            height: 30px;
+            background: #700;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #C3C3C3 21%, #FFFFFF 55%, #999999 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+            border: #700 1px solid;
+            box-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+        .progress-text {
+            font-size: 1.5vw;
+            margin-top: 10px;
+            color: #ccc;
+        }
+        .corner-top-right {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: url('/assets/corner_top_right.png') no-repeat;
+            background-size: contain;
+            z-index: 5;
+        }
+        .corner-bottom-left {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200px;
+            height: 200px;
+            background: url('/assets/corner_bottom_left.png') no-repeat;
+            background-size: contain;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="/assets/logoprimaction.png" alt="PRIMACTION">
+    </div>
+    <div class="corner-top-right"></div>
+    <div class="corner-bottom-left"></div>
+
+    <div class="loading-text">Sebentar ya, hasilnya OTW!</div>
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="progress-text" id="progressText"></div>
+
+    <audio id="clickSound" preload="auto">
+        <source src="{{ url_for('static', filename='assets/sound/click.wav') }}" type="audio/wav">
+    </audio>
+
+    <script>
+        function navigateTo(url) {
+            window.parent.postMessage({ type: 'navigateTo', url: url }, '*');
+        }
+
+        const clickSound = document.getElementById('clickSound');
+        if (clickSound) clickSound.volume = 0.5;
+
+        function playClickSound() {
+            if (clickSound) {
+                clickSound.currentTime = 0;
+                clickSound.play().catch(() => {});
+            }
+        }
+
+        // Gunakan pointerup — satu event untuk semua input
+        document.body.addEventListener('pointerup', playClickSound, { passive: true });
+
+        let checkInterval;
+        let fallbackTimeout;
+        let maxWaitTime = 60000; // 60 detik max
+        let hasRedirected = false; // Flag untuk mencegah multiple redirect
+
+        function checkProcessing() {
+            if (hasRedirected) return; // Jangan lakukan apa-apa jika sudah redirect
+            
+            fetch('/check_processing')
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Processing status:", data);
+                    
+                    if (hasRedirected) return; // Double check sebelum update UI
+                    
+                    const progressBar = document.getElementById('progressBar');
+                    const progressText = document.getElementById('progressText');
+                    
+                    if (data.status === 'processing') {
+                        // Update progress bar dengan data real dari backend
+                        progressBar.style.width = data.progress + '%';
+                    } else if (data.status === 'completed') {
+                        // Processing selesai
+                        hasRedirected = true; // Set flag
+                        progressBar.style.width = '100%';
+                
+                        
+                        // Stop semua interval dan timeout
+                        clearInterval(checkInterval);
+                        clearTimeout(fallbackTimeout);
+                        
+                        // Redirect setelah delay singkat
+                        setTimeout(() => {
+                            navigateTo('/final-result-content'); // Gunakan replace agar tidak bisa back
+                        }, 800);
+                    } else if (data.status === 'error') {
+                        // Error terjadi
+                        hasRedirected = true; // Set flag
+                        clearInterval(checkInterval);
+                        clearTimeout(fallbackTimeout);
+                        alert('Terjadi kesalahan saat memproses video');
+                        window.location.replace('/form');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking processing:', error);
+                });
+        }
+
+        // Mulai pengecekan setiap 500ms
+        checkInterval = setInterval(checkProcessing, 500);
+
+        // Fallback: jika dalam 60 detik masih belum selesai, redirect paksa
+        fallbackTimeout = setTimeout(() => {
+            if (!hasRedirected) {
+                hasRedirected = true;
+                clearInterval(checkInterval);
+                console.log("Timeout reached, forcing redirect");
+                window.location.replace('/final_result');
+            }
+        }, maxWaitTime);
+
+        // Panggil sekali saat load
+        checkProcessing();
+        
+        // Cleanup saat page unload
+        window.addEventListener('beforeunload', function() {
+            clearInterval(checkInterval);
+            clearTimeout(fallbackTimeout);
+        });
+    </script>
+</body>
+</html>

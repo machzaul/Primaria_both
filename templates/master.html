@@ -1,0 +1,117 @@
+<!-- templates/master.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRIMACTION - GOYANG SAMPE POL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        /* 🎵 BGM Iframe - HIDDEN & PERSISTENT */
+        #bgmFrame {
+            display: none;
+            position: absolute;
+            width: 0;
+            height: 0;
+            border: none;
+            pointer-events: none;
+        }
+        
+        /* 📄 Content Iframe - FULLSCREEN */
+        #contentFrame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- 🎵 BGM Player - TETAP TIDAK RELOAD -->
+    <iframe id="bgmFrame" src="{{ url_for('bgm_player') }}" title="BGM Player"></iframe>
+    
+    <!-- 📄 Content Frame - INI YANG BERUBAH-UBAH -->
+    <iframe id="contentFrame" src="{{ url_for('index_content') }}" title="Content"></iframe>
+
+    <script>
+        // 🎵 Fungsi untuk akses BGM dari content iframe
+        window.playBGM = function(volume = 0.3) {
+            const bgmIframe = document.getElementById('bgmFrame');
+            try {
+                bgmIframe?.contentWindow?.playBGM?.();
+                if (volume !== undefined) {
+                    bgmIframe?.contentWindow?.setBGMVolume?.(volume);
+                }
+            } catch(e) {
+                console.log("Cannot play BGM:", e);
+            }
+        };
+
+        window.pauseBGM = function() {
+            const bgmIframe = document.getElementById('bgmFrame');
+            try {
+                bgmIframe?.contentWindow?.pauseBGM?.();
+            } catch(e) {
+                console.log("Cannot pause BGM:", e);
+            }
+        };
+
+        window.setBGMVolume = function(volume) {
+            const bgmIframe = document.getElementById('bgmFrame');
+            try {
+                bgmIframe?.contentWindow?.setBGMVolume?.(volume);
+            } catch(e) {
+                console.log("Cannot set volume:", e);
+            }
+        };
+
+        // 🔀 Fungsi navigasi TANPA RELOAD BGM
+        window.navigateTo = function(url) {
+            const contentFrame = document.getElementById('contentFrame');
+            contentFrame.src = url;
+        };
+
+        // 🎵 Auto-play BGM jika sudah diizinkan
+        const bgmIframe = document.getElementById('bgmFrame');
+        bgmIframe.addEventListener('load', function() {
+            const soundDecision = sessionStorage.getItem('soundDecision');
+            if (soundDecision === 'allowed') {
+                setTimeout(() => window.playBGM(0.3), 500);
+            }
+        });
+
+        // 🔊 Forward messages dari content frame
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'setSoundDecision') {
+                sessionStorage.setItem('soundDecision', event.data.value);
+                
+                if (event.data.value === 'allowed') {
+                    window.playBGM(0.3);
+                }
+            } else if (event.data.type === 'navigateTo') {
+                window.navigateTo(event.data.url);
+            } else if (event.data.type === 'playBGM') {
+                window.playBGM(event.data.volume || 0.3);
+            } else if (event.data.type === 'pauseBGM') {
+                window.pauseBGM();
+            } else if (event.data.type === 'setBGMVolume') {
+                window.setBGMVolume(event.data.volume);
+            }
+        });
+    </script>
+</body>
+</html>

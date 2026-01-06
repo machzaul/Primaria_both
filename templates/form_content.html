@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Isi Data - PRIMACTION</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: url('/assets/BG (2).png') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .header {
+            position: absolute;
+            top: 3%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .header img {
+            height: 80px;
+            scale: 1;
+        }
+
+        .form-container {
+            position: relative;
+            width: 90%;
+            max-width: 600px;
+            margin: 20% auto 0;
+            padding: 30px 35px;
+            border-radius: 15px;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            gap: 350px;
+        }
+
+        .form-title {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: white;
+            font-weight: 300;
+            font-family: 'DM Sans', 'Arial', sans-serif;
+        }
+
+        .input-section,
+        .button-section {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: #ddd;
+            font-weight: 400;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 16px 50px 16px 16px;
+            background: rgba(20,20,20,0.8);
+            border: 1.5px solid #e5e5e5;
+            color: white;
+            border-radius: 2px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        input::placeholder {
+            color: #555;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #666;
+            background: rgba(25,25,25,0.9);
+        }
+
+        input.valid {
+            background: linear-gradient(90deg, #111111 69%, #00DB0F 100%);
+            border: 2px solid #03B010;
+        }
+
+        input.invalid {
+            background: linear-gradient(90deg, #111111 69%, #CD0D12 100%);
+            border: 2px solid #BF0D11;
+        }
+
+        .status-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            display: none;
+        }
+
+        .status-icon.valid {
+            color: #00ff00;
+            display: block;
+        }
+
+        .status-icon.invalid {
+            color: #ff0000;
+            display: block;
+        }
+
+        .error-message {
+            display: none;
+            color: #ff4444;
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        .age-warning {
+            background: rgba(96, 21, 21, 0.8);
+            color: rgb(255, 0, 0);
+            padding: 20px;
+            border-radius: 3px;
+            margin-top: 15px;
+            display: none;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .age-warning strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.05rem;
+        }
+
+        #smokerOptions {
+            height: 60px;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #smokerOptions.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .choice-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            height: 100%;
+        }
+
+        .btn-choice {
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #999;
+            border: 3px solid #333;
+            border-radius: 2px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-choice:hover {
+            background: rgba(40,40,40,0.9);
+            border-color: #555;
+        }
+
+        .btn-choice.selected {
+            background: linear-gradient(135deg, #C3C3C3 21%, #FFFFFF 55%, #999999 100%);
+            color: #000;
+            border: 4px solid #d32f2f;
+            box-shadow: 0 0 8px rgba(200, 0, 0, 0.4);
+            font-weight: 600;
+        }
+
+        .brand-selector {
+            min-height: 90px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            margin-top: 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .brand-selector.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .brand-selector label {
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: #ddd;
+            font-weight: 400;
+        }
+
+        .brand-selector select {
+            width: 100%;
+            padding: 16px;
+            background: rgba(20,20,20,0.8);
+            border: 2px solid #333;
+            color: white;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #666;
+            background: rgba(25,25,25,0.9);
+        }
+
+        select option {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .brand-selector .warning-text {
+            background: rgba(80, 10, 10, 0.8);
+            color: rgb(255, 0, 0);
+            padding: 16px;
+            border-radius: 3px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+
+        .brand-selector .warning-text strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.05rem;
+        }
+
+        .button-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .checkbox-container {
+            height: 70px;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .checkbox-container.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            margin-top: 3px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .checkbox-label {
+            font-size: 0.9rem;
+            color: #ccc;
+            line-height: 1.5;
+        }
+
+        .checkbox-label a {
+            color: #ff4444;
+            text-decoration: underline;
+        }
+
+        .btn-start {
+            width: 100%;
+            padding: 18px;
+            background: #2a2a2a;
+            color: #666;
+            border: none;
+            border-radius: 2px;
+            font-size: 1.3rem;
+            cursor: not-allowed;
+            transition: all 0.3s ease;
+            font-weight: 700;
+            box-sizing: border-box;
+        }
+
+        .btn-start:disabled {
+            background: #2a2a2a;
+            color: #666;
+        }
+
+        .btn-start.active {
+            background: linear-gradient(90deg, #FE0E14 0%, #98080C 100%);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(254, 14, 20, 0.4);
+            font-weight: 600;
+        }
+
+        .virtual-keyboard {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 95%;
+            max-width: 600px;
+            background: rgba(15, 15, 15, 0.95);
+            border-top: 2px solid #444;
+            border-radius: 12px 12px 0 0;
+            padding: 12px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .virtual-keyboard.visible {
+            display: flex;
+        }
+
+        .keyboard-row {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .keyboard-btn {
+            flex: 1;
+            min-width: 40px;
+            height: 50px;
+            background: rgba(40, 40, 40, 0.9);
+            color: white;
+            border: 1px solid #555;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            transition: all 0.15s ease;
+        }
+
+        .keyboard-btn:hover {
+            background: rgba(60, 60, 60, 0.9);
+        }
+
+        .keyboard-btn:active {
+            background: rgba(80, 80, 80, 0.9);
+            transform: scale(0.96);
+        }
+
+        .keyboard-btn.special {
+            background: rgba(30, 30, 30, 0.95);
+            color: #ff4444;
+            font-weight: bold;
+        }
+
+        .keyboard-btn.space {
+            flex: 3;
+        }
+
+        .keyboard-btn.shift,
+        .keyboard-btn.backspace {
+            flex: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .form-container {
+                width: 90%;
+                padding: 30px 20px;
+                margin: 25% auto 0;
+                gap: 70px;
+            }
+            
+            .form-title {
+                font-size: 1.5rem;
+            }
+            
+            input, select {
+                font-size: 1rem;
+            }
+
+            #smokerOptions {
+                height: 55px;
+            }
+
+            .brand-selector {
+                min-height: 85px;
+            }
+
+            .checkbox-container {
+                height: 65px;
+            }
+        }
+
+        @media (min-width: 769px) and (max-height: 500px) {
+            .form-container {
+                width: 90%;
+                max-width: 600px;
+                margin: 20% auto 0;
+                padding: 30px 20px;
+                gap: 70px;
+            }
+
+            .form-title {
+                font-size: 1.5rem;
+            }
+
+            input, select {
+                font-size: 1rem;
+            }
+
+            #smokerOptions {
+                height: 55px;
+            }
+
+            .brand-selector {
+                min-height: 85px;
+            }
+
+            .checkbox-container {
+                height: 65px;
+            }
+
+            .header img {
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="{{ url_for('static', filename='assets/logoprimaction.png') }}" alt="PRIMACTION Logo">
+    </div>
+
+    <div class="form-container">
+        <div class="input-section">
+            <div class="form-title">Isi data dulu sebelum mulai</div>
+            <form id="biodataForm">
+                <div class="form-group">
+                    <label for="nama">Nama Lengkap</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="nama" placeholder="Masukkan Nama Lengkap Sesuai KTP" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ktp6">6 Digit Terakhir KTP</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="ktp6" maxlength="6" placeholder="Masukkan 6 Digit Terakhir No. KTP" required>
+                        <span class="status-icon" id="ktpStatus"></span>
+                    </div>
+                    <div class="error-message" id="ktpError"></div>
+                    <div class="age-warning" id="ageWarning"></div>
+                </div>
+
+                <div id="smokerOptions">
+                    <div class="choice-buttons">
+                        <div class="btn-choice" id="btnNonSmoker">Bukan Perokok</div>
+                        <div class="btn-choice" id="btnSmoker">Perokok</div>
+                    </div>
+                </div>
+
+                <div class="brand-selector" id="brandSelector"></div>
+            </form>
+        </div>
+
+        <div class="button-section">
+            <div class="checkbox-container" id="termsCheckbox">
+                <input type="checkbox" id="agreeTerms">
+                <label for="agreeTerms" class="checkbox-label">
+                    Saya adalah perokok dewasa berumur 21 tahun ke atas dan saya setuju dengan 
+                    <a href="#" target="_blank">Syarat dan Ketentuan & Kebijakan Privasi</a> yang berlaku.
+                </label>
+            </div>
+
+            <button type="button" class="btn-start" id="startBtn" disabled>Mulai, kuy !</button>
+        </div>
+    </div>
+
+    <div id="virtualKeyboard" class="virtual-keyboard">
+    </div>
+
+    <audio id="clickSound" preload="auto">
+        <source src="{{ url_for('static', filename='assets/sound/click.wav') }}" type="audio/wav">
+    </audio>
+
+    <script>
+        // 🎵 Fungsi navigasi (gunakan parent)
+        function navigateTo(url) {
+            window.parent.postMessage({ type: 'navigateTo', url: url }, '*');
+        }
+
+        const clickSound = document.getElementById('clickSound');
+        if (clickSound) clickSound.volume = 0.5;
+
+        function playClickSound() {
+            if (clickSound) {
+                clickSound.currentTime = 0;
+                clickSound.play().catch(() => {});
+            }
+        }
+
+        document.body.addEventListener('pointerup', playClickSound, { passive: true });
+
+        let isAgeValid = false;
+        let isSmokerSelected = false;
+        let isBrandSelected = false;
+        let isTermsAgreed = false;
+        let currentInput = null;
+        let isShift = false;
+        let redirectTimer = null;
+        let countdownElement = null;
+        let isRedirecting = false;
+
+        const keyboard = document.getElementById('virtualKeyboard');
+        let activeInput = null;
+
+        function createKeyboard(isNumeric = false) {
+            keyboard.innerHTML = '';
+            if (isNumeric) {
+                const rows = [
+                    ['1', '2', '3'],
+                    ['4', '5', '6'],
+                    ['7', '8', '9'],
+                    ['⌫', '0', '✕']
+                ];
+                rows.forEach(row => {
+                    const rowEl = document.createElement('div');
+                    rowEl.className = 'keyboard-row';
+                    row.forEach(key => {
+                        const btn = document.createElement('div');
+                        btn.className = 'keyboard-btn';
+                        if (key === '⌫') {
+                            btn.textContent = '⌫';
+                            btn.classList.add('special');
+                            btn.dataset.action = 'backspace';
+                        } else if (key === '✕') {
+                            btn.textContent = '✕';
+                            btn.classList.add('special');
+                            btn.dataset.action = 'close';
+                        } else {
+                            btn.textContent = key;
+                            btn.dataset.char = key;
+                        }
+                        rowEl.appendChild(btn);
+                    });
+                    keyboard.appendChild(rowEl);
+                });
+            } else {
+                const rows = [
+                    ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+                    ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+                    ['shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'backspace'],
+                    ['123', ' ', '↵']
+                ];
+                rows.forEach(row => {
+                    const rowEl = document.createElement('div');
+                    rowEl.className = 'keyboard-row';
+                    row.forEach(key => {
+                        const btn = document.createElement('div');
+                        btn.className = 'keyboard-btn';
+                        if (key === 'backspace') {
+                            btn.textContent = '⌫';
+                            btn.classList.add('special');
+                            btn.dataset.action = 'backspace';
+                        } else if (key === 'shift') {
+                            btn.textContent = '⇧';
+                            btn.classList.add('special');
+                            btn.dataset.action = 'shift';
+                        } else if (key === '123') {
+                            btn.textContent = '123';
+                            btn.classList.add('special');
+                            btn.dataset.action = 'toggle';
+                        } else if (key === '↵') {
+                            btn.textContent = '✕';
+                            btn.classList.add('special');
+                            btn.dataset.action = 'close';
+                        } else if (key === ' ') {
+                            btn.textContent = 'Space';
+                            btn.classList.add('space');
+                            btn.dataset.char = ' ';
+                        } else {
+                            btn.textContent = isShift ? key.toUpperCase() : key;
+                            btn.dataset.char = isShift ? key.toUpperCase() : key;
+                            btn.dataset.lower = key;
+                        }
+                        rowEl.appendChild(btn);
+                    });
+                    keyboard.appendChild(rowEl);
+                });
+            }
+        }
+
+        function showKeyboard(input, isNumeric = false) {
+            activeInput = input;
+            createKeyboard(isNumeric);
+            keyboard.classList.add('visible');
+        }
+
+        function hideKeyboard() {
+            keyboard.classList.remove('visible');
+            activeInput = null;
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!keyboard.contains(e.target) && 
+                e.target.id !== 'nama' && 
+                e.target.id !== 'ktp6' &&
+                !e.target.closest('.keyboard-btn')) {
+                hideKeyboard();
+            }
+        });
+
+        keyboard.addEventListener('click', (e) => {
+            if (!activeInput) return;
+            const btn = e.target.closest('.keyboard-btn');
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+            const char = btn.dataset.char;
+
+            let valueChanged = false;
+
+            if (action === 'backspace') {
+                activeInput.value = activeInput.value.slice(0, -1);
+                valueChanged = true;
+            } else if (action === 'close') {
+                hideKeyboard();
+                return;
+            } else if (action === 'shift') {
+                isShift = !isShift;
+                createKeyboard(false);
+                return;
+            } else if (action === 'toggle') {
+                hideKeyboard();
+                return;
+            } else if (char) {
+                activeInput.value += char;
+                valueChanged = true;
+                if (isShift) {
+                    isShift = false;
+                    createKeyboard(false);
+                }
+            }
+
+            if (valueChanged) {
+                activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        });
+
+        document.getElementById('nama').addEventListener('focus', () => {
+            showKeyboard(document.getElementById('nama'), false);
+        });
+
+        document.getElementById('ktp6').addEventListener('focus', () => {
+            showKeyboard(document.getElementById('ktp6'), true);
+        });
+
+        document.getElementById('ktp6').addEventListener('input', validateKTP);
+        document.getElementById('btnNonSmoker').addEventListener('click', selectNonSmoker);
+        document.getElementById('btnSmoker').addEventListener('click', selectSmoker);
+        document.getElementById('agreeTerms').addEventListener('change', updateTermsAgreement);
+
+        function showBrandSelector() {
+            const container = document.getElementById('brandSelector');
+            container.innerHTML = `
+                <label for="brand">Pilih Brand Rokokmu</label>
+                <select id="brand" required>
+                    <option value="" disabled selected>Pilih Brand Rokokmu</option>
+                    <option value="amild">Amild 16</option>
+                    <option value="djarum">Djarum Super</option>
+                    <option value="gudanggaram">Gudang Garam Filter</option>
+                    <option value="sampoerna">Sampoerna Mild</option>
+                    <option value="lucky">Lucky Strike</option>
+                </select>
+            `;
+            document.getElementById('brand').addEventListener('change', updateBrandSelection);
+        }
+
+        function showNonSmokerWarning() {
+            const container = document.getElementById('brandSelector');
+            container.innerHTML = `
+                <div class="warning-text">
+                    <strong>Kamu bukan perokok</strong>
+                    Maaf, kamu belum bisa melanjutkan karena bukan perokok. 
+                    Engagement ini hanya ditujukan untuk perokok dewasa 21 tahun ke atas. Terima kasih.
+                </div>
+            `;
+        }
+
+        function validateKTP() {
+            if (!isRedirecting) {
+                cancelRedirect();
+            }
+
+            const ktp6 = document.getElementById('ktp6').value.trim();
+            const inputField = document.getElementById('ktp6');
+            const statusIcon = document.getElementById('ktpStatus');
+            const errorDiv = document.getElementById('ktpError');
+            const ageWarning = document.getElementById('ageWarning');
+
+            inputField.classList.remove('valid', 'invalid');
+            statusIcon.classList.remove('valid', 'invalid');
+            statusIcon.style.display = 'none';
+            errorDiv.style.display = 'none';
+            ageWarning.style.display = 'none';
+
+            isAgeValid = false;
+            isSmokerSelected = false;
+            isBrandSelected = false;
+            isTermsAgreed = false;
+
+            document.getElementById('smokerOptions').classList.remove('visible');
+            document.getElementById('brandSelector').classList.remove('visible');
+            document.getElementById('termsCheckbox').classList.remove('visible');
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('startBtn').classList.remove('active');
+
+            if (!ktp6) return;
+
+            if (ktp6.length !== 6 || !/^\d{6}$/.test(ktp6)) {
+                showInvalid('Masukkan 6 digit angka yang valid.');
+                return;
+            }
+
+            const yyStr = ktp6.substring(0, 2);
+            const YY = parseInt(yyStr, 10);
+
+            const birthYear = YY > 24 ? 1900 + YY : 2000 + YY;
+            const currentYear = 2026;
+            const age = currentYear - birthYear;
+
+            if (age < 21) {
+                inputField.classList.add('invalid');
+                statusIcon.classList.add('invalid');
+                statusIcon.textContent = '✕';
+                statusIcon.style.display = 'block';
+                ageWarning.innerHTML = `
+                    <strong>Usia kamu di bawah 21 Tahun</strong>
+                    Maaf, kamu belum bisa melanjutkan. 
+                    Engagement ini hanya ditujukan untuk orang-orang 21 tahun ke atas. Terima kasih.
+                `;
+                ageWarning.style.display = 'block';
+
+                redirectToHomeAfterDelay(10);
+                return;
+            }
+
+            inputField.classList.add('valid');
+            statusIcon.classList.add('valid');
+            statusIcon.textContent = '✓';
+            statusIcon.style.display = 'block';
+            isAgeValid = true;
+
+            document.getElementById('smokerOptions').classList.add('visible');
+        }
+
+        function showInvalid(msg) {
+            const inputField = document.getElementById('ktp6');
+            const statusIcon = document.getElementById('ktpStatus');
+            const errorDiv = document.getElementById('ktpError');
+
+            inputField.classList.add('invalid');
+            statusIcon.classList.add('invalid');
+            statusIcon.textContent = '✕';
+            statusIcon.style.display = 'block';
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+        }
+
+        function selectNonSmoker() {
+            cancelRedirect();
+
+            resetSmokerButtons();
+            document.getElementById('btnNonSmoker').classList.add('selected');
+            isSmokerSelected = false;
+
+            document.getElementById('ageWarning').style.display = 'none';
+            showNonSmokerWarning();
+            document.getElementById('brandSelector').classList.add('visible');
+
+            document.getElementById('termsCheckbox').classList.remove('visible');
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('startBtn').classList.remove('active');
+
+            redirectToHomeAfterDelay(10);
+        }
+
+        function selectSmoker() {
+            resetSmokerButtons();
+            document.getElementById('btnSmoker').classList.add('selected');
+            isSmokerSelected = true;
+
+            document.getElementById('ageWarning').style.display = 'none';
+            showBrandSelector();
+            document.getElementById('brandSelector').classList.add('visible');
+            document.getElementById('termsCheckbox').classList.add('visible');
+
+            document.getElementById('brand').value = '';
+            document.getElementById('agreeTerms').checked = false;
+            isBrandSelected = false;
+            isTermsAgreed = false;
+
+            updateStartButton();
+        }
+
+        function resetSmokerButtons() {
+            document.getElementById('btnNonSmoker').classList.remove('selected');
+            document.getElementById('btnSmoker').classList.remove('selected');
+        }
+
+        function updateBrandSelection() {
+            const brand = document.getElementById('brand').value;
+            isBrandSelected = brand !== '';
+            updateStartButton();
+        }
+
+        function updateTermsAgreement() {
+            isTermsAgreed = document.getElementById('agreeTerms').checked;
+            updateStartButton();
+        }
+
+        function updateStartButton() {
+            const btn = document.getElementById('startBtn');
+            if (isAgeValid && isSmokerSelected && isBrandSelected && isTermsAgreed) {
+                btn.disabled = false;
+                btn.classList.add('active');
+            } else {
+                btn.disabled = true;
+                btn.classList.remove('active');
+            }
+        }
+
+        document.getElementById('startBtn').addEventListener('click', function() {
+            if (!isAgeValid || !isSmokerSelected || !isBrandSelected || !isTermsAgreed) {
+                alert("Silakan lengkapi semua syarat terlebih dahulu.");
+                return;
+            }
+
+            const nama = document.getElementById('nama').value.trim();
+            const ktp6 = document.getElementById('ktp6').value.trim();
+            const brand = document.getElementById('brand').value;
+
+            localStorage.setItem('userNama', nama);
+            localStorage.setItem('userKTP6', ktp6);
+            localStorage.setItem('userIsSmoker', 'true');
+            localStorage.setItem('userBrand', brand);
+
+            navigateTo('/select-frame-content');
+        });
+
+        function redirectToHomeAfterDelay(seconds) {
+            isRedirecting = true;
+            setTimeout(() => {
+                isRedirecting = false;
+            }, 150);
+
+            cancelRedirect();
+
+            const startBtn = document.getElementById('startBtn');
+            if (!startBtn || !startBtn.parentNode) return;
+
+            const countdownEl = document.createElement('div');
+            countdownEl.id = 'countdown';
+            countdownEl.textContent = `Halaman tertutup dalam ${seconds} detik.`;
+            countdownEl.style.cssText = `
+                color: #aaa;
+                font-size: 1rem;
+                font-weight: 400;
+                text-align: center;
+                margin-bottom: 15px;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+
+            startBtn.parentNode.insertBefore(countdownEl, startBtn);
+
+            setTimeout(() => {
+                countdownEl.style.opacity = '1';
+            }, 50);
+
+            let remaining = seconds;
+            redirectTimer = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(redirectTimer);
+                    navigateTo('/index-content');
+                } else {
+                    countdownEl.textContent = `Halaman tertutup dalam ${remaining} detik.`;
+                }
+            }, 1000);
+        }
+
+        function cancelRedirect() {
+            if (isRedirecting) return;
+
+            if (redirectTimer) {
+                clearInterval(redirectTimer);
+                redirectTimer = null;
+            }
+
+            const countdownEl = document.getElementById('countdown');
+            if (countdownEl && countdownEl.parentNode) {
+                countdownEl.parentNode.removeChild(countdownEl);
+                countdownElement = null;
+            }
+        }
+        
+        document.getElementById('nama').addEventListener('input', cancelRedirect);
+        document.getElementById('btnNonSmoker').addEventListener('click', cancelRedirect);
+        document.getElementById('btnSmoker').addEventListener('click', cancelRedirect);
+    </script>
+</body>
+</html>

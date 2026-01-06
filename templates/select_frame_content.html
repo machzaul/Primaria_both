@@ -188,22 +188,14 @@
         <button class="btn-continue" id="continueBtn" disabled>Lanjut Gan</button>
     </div>
 
-    <audio id="globalBGM" loop>
-        <source src="{{ url_for('static', filename='assets/sound/bgmlooped.mp3') }}" type="audio/mpeg">
-    </audio>
     <audio id="clickSound" preload="auto">
         <source src="{{ url_for('static', filename='assets/sound/click.wav') }}" type="audio/wav">
     </audio>
 
 
     <script>
-
-        if (sessionStorage.getItem('soundDecision') === 'allowed') {
-            const bgm = document.getElementById('globalBGM');
-            if (bgm) {
-                bgm.volume = 0.1;
-                bgm.play().catch(e => console.log("BGM delayed"));
-            }
+        function navigateTo(url) {
+            window.parent.postMessage({ type: 'navigateTo', url: url }, '*');
         }
 
         const clickSound = document.getElementById('clickSound');
@@ -240,7 +232,7 @@
             if (!selectedFrame) return;
 
             localStorage.setItem('selectedFrame', selectedFrame);
-            window.location.href = '/dream_selection';
+            navigateTo('/dream-selection-content');
         });
     </script>
 

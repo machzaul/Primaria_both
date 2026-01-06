@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Pilih Mimpi - PRIMACTION</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        .page-title {
+            font-size: 4vw;
+            margin-bottom: 20px;
+            text-align: center;
+            color: white;
+            z-index: 10;
+            font-family: 'DM Sans', 'Arial', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER FIXED -->
+    <div class="header">
+        <img src="{{ url_for('static', filename='assets/logoprimaction.png') }}" alt="PRIMACTION Logo">
+    </div>
+
+    <!-- CONTAINER UTAMA -->
+    <div class="page-container">
+        
+        <!-- TITLE SECTION - POSISI TETAP -->
+        <div class="page-title">Apa mimpi yang mau kamu capai?</div>
+
+        <!-- CONTENT SECTION - SCROLLABLE -->
+        <div class="page-content">
+            <div class="dream-options">
+                <div class="dream-btn" data-dream="bebas_cicilan">Bebas dari Cicilan</div>
+                <div class="dream-btn" data-dream="rumah_impian">Punya Rumah Impian</div>
+                <div class="dream-btn" data-dream="keliling_dunia">Keliling Dunia</div>
+                <div class="dream-btn" data-dream="sukses_berbisnis">Sukses Berbisnis</div>
+                <div class="dream-btn" data-dream="karir_melesat">Karir Melesat</div>
+                <div class="dream-btn" data-dream="ketemu_jodoh">Ketemu Jodoh</div>
+                <div class="dream-btn" data-dream="keluarga_bahagia">Bikin Keluarga Bahagia</div>
+            </div>
+        </div>
+
+        <!-- FOOTER SECTION - POSISI TETAP DI BAWAH -->
+        <div class="page-footer">
+            <button class="btn-submit" id="continueBtn" disabled>Oke, Lanjut Kuy!</button>
+        </div>
+    </div>
+
+    <audio id="clickSound" preload="auto">
+        <source src="{{ url_for('static', filename='assets/sound/click.wav') }}" type="audio/wav">
+    </audio>
+
+    <script>
+        function navigateTo(url) {
+            window.parent.postMessage({ type: 'navigateTo', url: url }, '*');
+        }
+        // Sound klik tanpa double
+        const clickSound = document.getElementById('clickSound');
+        if (clickSound) clickSound.volume = 0.5;
+
+        function playClickSound() {
+            if (clickSound) {
+                clickSound.currentTime = 0;
+                clickSound.play().catch(() => {});
+            }
+        }
+
+        // Gunakan pointerup — satu event untuk semua input
+        document.body.addEventListener('pointerup', playClickSound, { passive: true });
+
+        let selectedDream = null;
+
+        const dreamButtons = document.querySelectorAll('.dream-btn');
+        const continueBtn = document.getElementById('continueBtn');
+
+        dreamButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                dreamButtons.forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedDream = this.dataset.dream;
+
+                continueBtn.disabled = false;
+                continueBtn.classList.add('active');
+            });
+        });
+
+        continueBtn.addEventListener('click', function() {
+            if (!selectedDream) return;
+            localStorage.setItem('userDream', selectedDream);
+            navigateTo('/dance-prep-content');
+        });
+    </script>
+</body>
+</html>
