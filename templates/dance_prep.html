@@ -150,7 +150,7 @@
         /* === METER BAR DENGAN GAMBAR PNG === */
         .meter-container {
             position: absolute;
-            bottom: 5%;
+            bottom: 0%;
             width: 60%;
             max-width: 300px;
             z-index: 30;
@@ -178,14 +178,14 @@
         /* 🔸 POINTER DENGAN UI HARDCODE (CSS) — seperti kode kedua */
         .meter-pointer {
             position: absolute;
-            bottom: 10px; /* jarak dari bawah */
+            bottom: 5px; /* jarak dari bawah */
             left: 50%;
             transform: translateX(-50%) rotate(0deg);
             width: 10px;          /* lebar tetap ramping */
             height: 50px;         /* 🔼 lebih panjang! */
             background: white;
             border: 1.5px solid black; /* 🔲 border hitam */
-            border-radius: 5px;   /* ujung membulat */
+            border-radius: 2px;   /* ujung membulat */
             transition: transform 0.3s ease;
             z-index: 2;
 
@@ -208,6 +208,27 @@
             pointer-events: none;
         }
 
+        .phase-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 35;
+            pointer-events: none;
+        }
+
+        .phase-image {
+            max-width: 80vw;
+            max-height: 60vh;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
         .mantap-image {
             max-width: 80vw;
             max-height: 60vh;
@@ -217,33 +238,38 @@
 
         .instruction-box {
             position: absolute;
-            bottom: 18%;
-            width: 80%;
+            bottom: 12%; /* 🔽 lebih ke bawah dari 18% → 12% */
+            left: 50%;
+            transform: translateX(-50%); /* agar benar-benar center secara horizontal */
+            width: 85%; /* sedikit lebih lebar untuk konsistensi */
             max-width: 500px;
-            padding: 15px;
-            background: rgba(0,0,0,0.8);
+            padding: clamp(12px, 3.5vw, 18px); /* responsif: min 12px, ideal 3.5% viewport, max 18px */
+            background: rgba(0, 0, 0, 0.85);
             border: 2px solid #f00;
-            border-radius: 10px;
+            border-radius: 8px;
             color: white;
             text-align: center;
             z-index: 30;
+            font-size: clamp(14px, 2.8vw, 18px); /* teks responsif */
+            line-height: 1.4;
         }
 
         .instruction-box::before {
             content: "!";
             position: absolute;
-            top: -15px;
+            top: -16px;
             left: 50%;
             transform: translateX(-50%);
             background: #f00;
             color: white;
-            width: 30px;
-            height: 30px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
+            font-size: clamp(14px, 2.5vw, 16px);
         }
     </style>
 </head>
@@ -290,10 +316,56 @@
             <img src="/static/assets/mantap.png" alt="MANTAP!!" class="mantap-image">
         </div>
 
+        <!-- Overlay Fase Awal (Merah) -->
+        <div class="phase-overlay" id="overlayMerah" style="display: none;">
+            <img src="/static/assets/merah.png" alt="Awal" class="phase-image">
+        </div>
+
+        <!-- Overlay Fase Tengah (Kuning) -->
+        <div class="phase-overlay" id="overlayKuning" style="display: none;">
+            <img src="/static/assets/kuning.png" alt="Tengah" class="phase-image">
+        </div>
+
+        <!-- Overlay Fase Akhir (Hijau) -->
+        <div class="phase-overlay" id="overlayHijau" style="display: none;">
+            <img src="/static/assets/hijau.png" alt="Akhir" class="phase-image">
+        </div>
+
         
     </div>
 
+    <audio id="globalBGM" loop>
+        <source src="{{ url_for('static', filename='assets/sound/bgmlooped.mp3') }}" type="audio/mpeg">
+    </audio>
+    <audio id="clickSound" preload="auto">
+        <source src="{{ url_for('static', filename='assets/sound/click.wav') }}" type="audio/wav">
+    </audio>
+    <!-- Sound Efek Countdown -->
+    <audio id="countdownSound" preload="auto">
+        <source src="{{ url_for('static', filename='assets/sound/click.wav') }}" type="audio/wav">
+    </audio>
+
     <script>
+        const clickSound = document.getElementById('clickSound');
+        if (clickSound) clickSound.volume = 0.5;
+
+        function playClickSound() {
+            if (clickSound) {
+                clickSound.currentTime = 0;
+                clickSound.play().catch(() => {});
+            }
+        }
+
+        // Gunakan pointerup — satu event untuk semua input
+        document.body.addEventListener('pointerup', playClickSound, { passive: true });
+
+        if (sessionStorage.getItem('soundDecision') === 'allowed') {
+            const bgm = document.getElementById('globalBGM');
+            if (bgm) {
+                bgm.volume = 0.1;
+                bgm.play().catch(e => console.log("BGM delayed"));
+            }
+        }
         // State
         let isDancing = false;
         let countdown = 3;
@@ -393,14 +465,29 @@
             loadingScreen.style.display = 'none';
             countdownScreen.style.display = 'flex';
 
+            const countdownSound = document.getElementById('countdownSound');
+            if (countdownSound) {
+                countdownSound.volume = 0.9; // Atur volume sesuai kebutuhan
+            }
+
             const countInterval = setInterval(() => {
                 if (countdown > 0) {
+                    // Tampilkan angka
                     countdownNumber.textContent = countdown;
+                    
+                    // Update teks
                     switch(countdown) {
                         case 3: countdownText.textContent = "SIAP?"; break;
                         case 2: countdownText.textContent = "OKE!"; break;
                         case 1: countdownText.textContent = "GAS!"; break;
                     }
+
+                    // 🔊 Mainkan suara countdown
+                    if (countdownSound) {
+                        countdownSound.currentTime = 0;
+                        countdownSound.play().catch(e => console.log("Countdown sound delayed:", e));
+                    }
+
                     countdown--;
                 } else {
                     clearInterval(countInterval);
@@ -410,6 +497,13 @@
         }
 
         function startDance() {
+
+            const bgm = document.getElementById('globalBGM');
+            if (bgm) {
+                bgm.currentTime = 0;
+                bgm.play().catch(e => console.warn("Gagal play BGM saat joget:", e));
+            }
+
             fetch('/reset_shake_count')
                 .then(() => {
                     return fetch('/start_recording', {
@@ -453,15 +547,45 @@
                 });
         }
 
+        let currentPhase = null; // 'merah', 'kuning', 'hijau', atau null
+
         function updateMeter(value) {
-            // Batasi nilai agar tidak melebihi 80 atau kurang dari 0
             value = Math.max(0, Math.min(120, value));
 
-            // Pemetaan: 0 → -45°, 80 → +45°
+            // Pemetaan sudut pointer
             const angle = -65 + (value / 90) * 120;
             meterPointer.style.transform = `translateX(-50%) rotate(${angle}deg)`;
 
-            // Tampilkan "MANTAP!!" saat nilai >= 50 (opsional: sesuaikan ambang jika perlu)
+            // Tentukan fase berdasarkan nilai
+            let newPhase = null;
+            if (value >= 80) {
+                newPhase = 'hijau';
+            } else if (value >= 40) {
+                newPhase = 'kuning';
+            } else if (value > 0) {
+                newPhase = 'merah';
+            }
+
+            // Hanya update jika fase berubah
+            if (newPhase !== currentPhase) {
+                // Sembunyikan semua overlay fase
+                document.getElementById('overlayMerah').style.display = 'none';
+                document.getElementById('overlayKuning').style.display = 'none';
+                document.getElementById('overlayHijau').style.display = 'none';
+
+                // Tampilkan yang sesuai
+                if (newPhase === 'merah') {
+                    document.getElementById('overlayMerah').style.display = 'flex';
+                } else if (newPhase === 'kuning') {
+                    document.getElementById('overlayKuning').style.display = 'flex';
+                } else if (newPhase === 'hijau') {
+                    document.getElementById('overlayHijau').style.display = 'flex';
+                }
+
+                currentPhase = newPhase;
+            }
+
+            // Tetap tampilkan "MANTAP!!" saat nilai tinggi (opsional)
             if (value >= 70 && !mantapShown) {
                 mantapShown = true;
                 mantapOverlay.style.display = 'flex';
@@ -472,6 +596,11 @@
         }
 
         function stopDanceAndProcess() {
+            document.getElementById('overlayMerah').style.display = 'none';
+            document.getElementById('overlayKuning').style.display = 'none';
+            document.getElementById('overlayHijau').style.display = 'none';
+            mantapOverlay.style.display = 'none';
+
             isDancing = false;
             danceScreen.style.display = 'none';
             fetch('/stop_recording')

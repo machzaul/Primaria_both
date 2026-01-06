@@ -122,7 +122,6 @@
             z-index: 1;
         }
 
-        /* 🔥 PERBAIKAN UTAMA DI SINI */
         .frame-overlay {
             position: absolute;
             top: 0;
@@ -131,7 +130,7 @@
             height: 100%;
             pointer-events: none;
             z-index: 2;
-            object-fit: fill; /* ← Menutupi seluruh area, tanpa jaga rasio */
+            object-fit: fill;
         }
 
         .footer {
@@ -158,6 +157,100 @@
             font-weight: 500;
             text-shadow: 0 0 1vw rgba(0,0,0,0.7);
             letter-spacing: 0.1vw;
+        }
+
+        /* === MODAL IZIN SUARA (SESUAI DESAIN) === */
+        .modal {
+            display: flex;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: rgba(0,0,0,0.7);
+            border: 3px solid #ff3366;
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            max-width: 85%;
+            box-shadow: 0 0 25px rgba(255,51,102,0.6);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content h2 {
+            margin: 0 0 20px;
+            font-size: 26px;
+            background: linear-gradient(to right, #C3C3C3 21%, #FFFFFF 55%, #999999 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            text-shadow: 0 0 8px rgba(255,255,255,0.5);
+        }
+
+        .modal-content p {
+            color: white;
+            margin-bottom: 25px;
+            font-size: 18px;
+            line-height: 1.4;
+        }
+
+        .allow-btn, .no-sound-btn {
+            background: linear-gradient(135deg, #ff3366, #ff6600);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255,51,102,0.5);
+            transition: transform 0.15s, box-shadow 0.15s;
+            margin: 0 8px;
+        }
+
+        .allow-btn:hover, .no-sound-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255,51,102,0.7);
+        }
+
+        .allow-btn:active, .no-sound-btn:active {
+            transform: scale(0.98);
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* Status: Menunggu klik lanjutan */
+        .waiting-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 9998;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .modal-content { padding: 20px; max-width: 90%; }
+            .modal-content h2 { font-size: 22px; }
+            .modal-content p { font-size: 16px; }
+            .allow-btn, .no-sound-btn { padding: 10px 20px; font-size: 16px; }
         }
 
         @media (min-width: 1024px) {
@@ -190,6 +283,7 @@
     </style>
 </head>
 <body>
+    <iframe src="/bgm-player" id="bgmFrame" style="display:none;" title="BGM Player"></iframe>
     <div class="header">
         <img src="{{ url_for('static', filename='assets/logoprimaction.png') }}" alt="PRIMACTION">
     </div>
@@ -212,14 +306,111 @@
             <div class="tap-icon">
                 <img src="{{ url_for('static', filename='assets/tunjuk.png') }}" alt="Tap">
             </div>
-            <div class="start-instruction">Tap dimana aja buat mulai, Gan!</div>
+            <div class="start-instruction" id="instructionText">Tap dimana aja buat mulai, Gan!</div>
         </div>
     </div>
 
+
+    <!-- Modal Izin Suara -->
+    <div id="soundModal" class="modal">
+        <div class="modal-content">
+            <h2>🎵 Aktifkan Suara?</h2>
+            <p>Biarkan musik jadi soundtrack mimpi kamu!</p>
+            <div class="modal-buttons">
+                <button id="allowSoundBtn" class="allow-btn">Izinkan Suara</button>
+                <button id="noSoundBtn" class="no-sound-btn">Lanjutkan Tanpa Suara</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay: Tunggu klik lanjutan -->
+    <div id="waitingOverlay" class="waiting-overlay">
+        Suara aktif! Tap dimana aja buat lanjut...
+    </div>
+    <!-- Sound Efek Klik -->
+    <audio id="clickSound" preload="auto">
+        <source src="{{ url_for('static', filename='assets/sound/click.wav') }}" type="audio/wav">
+    </audio>
+
     <script>
-        document.body.addEventListener('click', () => {
+        // === SOUND EFEK KLIK === (tetap sama)
+        const clickSound = document.getElementById('clickSound');
+        if (clickSound) clickSound.volume = 0.5;
+
+        function playClickSound() {
+            if (clickSound) {
+                clickSound.currentTime = 0;
+                clickSound.play().catch(() => {});
+            }
+        }
+        document.body.addEventListener('pointerup', playClickSound, { passive: true });
+
+        // === BGM via IFRAME ===
+        function getBGM() {
+            const iframe = document.getElementById('bgmFrame');
+            return iframe?.contentWindow?.BGM || null;
+        }
+
+        const soundModal = document.getElementById('soundModal');
+        const allowBtn = document.getElementById('allowSoundBtn');
+        const noSoundBtn = document.getElementById('noSoundBtn');
+
+        // Cek keputusan sebelumnya
+        const soundDecision = sessionStorage.getItem('soundDecision');
+
+        if (soundDecision === 'allowed') {
+            // Mainkan BGM dari iframe
+            const bgm = getBGM();
+            if (bgm) {
+                bgm.play().catch(e => console.warn("BGM delayed:", e));
+            }
+            soundModal.style.display = 'none';
+        } else if (soundDecision === 'denied') {
+            soundModal.style.display = 'none';
+        } else {
+            soundModal.style.display = 'flex';
+        }
+
+        // Handler redirect
+        function proceedToForm() {
             window.location.href = '/form';
-        });
+        }
+
+        if (soundDecision === 'allowed' || soundDecision === 'denied') {
+            document.body.addEventListener('click', proceedToForm, { once: true });
+        }
+
+        // Tombol: Izinkan Suara
+        if (allowBtn) {
+            allowBtn.addEventListener('click', () => {
+                const bgm = getBGM();
+                if (bgm) {
+                    bgm.play()
+                        .then(() => {
+                            console.log("✅ BGM aktif (via iframe)");
+                            sessionStorage.setItem('soundDecision', 'allowed');
+                            soundModal.style.display = 'none';
+                            document.body.addEventListener('click', proceedToForm, { once: true });
+                        })
+                        .catch(err => {
+                            console.error("❌ Gagal aktifkan suara:", err);
+                            sessionStorage.setItem('soundDecision', 'denied');
+                            soundModal.style.display = 'none';
+                            document.body.addEventListener('click', proceedToForm, { once: true });
+                        });
+                }
+            });
+        }
+
+        // Tombol: Tanpa Suara
+        if (noSoundBtn) {
+            noSoundBtn.addEventListener('click', () => {
+                console.log("🔇 Tanpa suara");
+                sessionStorage.setItem('soundDecision', 'denied');
+                soundModal.style.display = 'none';
+                document.body.addEventListener('click', proceedToForm, { once: true });
+            });
+        }
     </script>
 </body>
 </html>

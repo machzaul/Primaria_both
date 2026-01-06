@@ -10,6 +10,7 @@ import threading
 import qrcode
 import subprocess
 import gc  # Garbage collector untuk memory management
+import requests
 import random
 import string
 
@@ -40,6 +41,7 @@ last_frame = None
 user_data = {}
 processing_status = {"status": "idle", "progress": 0}
 FFMPEG_PATH = None
+AUDIO_PATH = "static/assets/sound/soundprimaction.wav"
 
 def detect_shake(hip_x, threshold=0.02):
     global prev_hip_x, current_shake_count
@@ -317,31 +319,72 @@ def create_final_video_light(raw_video_path, output_path, frame_overlay_path, dr
 
     out_writer.release()
     gc.collect()
-    
-    # Compress
-    processing_status["status"] = "compressing"
-    processing_status["progress"] = 70
-    
+
+    # === 🎥 LANGKAH BARU: PROSES VIDEO + AUDIO SECARA EKSPLISIT ===
+    raw_final = output_path  # Ini adalah file akhir yang diinginkan
+
+    # Cek apakah FFmpeg tersedia
     ffmpeg_available, _ = check_ffmpeg_installed()
-    compression_success = False
-    
+    temp_video_for_audio = temp_output  # Ini adalah hasil render dari OpenCV
+
+    # Jika FFmpeg tersedia → kompres dulu, lalu tambah audio
     if ffmpeg_available:
-        compression_success = compress_video_ffmpeg_light(temp_output, output_path)
-    
-    if not compression_success:
-        compression_success = compress_video_opencv_light(temp_output, output_path)
-    
-    # Cleanup
-    if compression_success and os.path.exists(temp_output):
-        os.remove(temp_output)
-    elif os.path.exists(temp_output):
-        os.rename(temp_output, output_path)
-    
+        print("[INFO] FFmpeg ditemukan. Melakukan kompresi...")
+        compression_success = compress_video_ffmpeg_light(temp_video_for_audio, raw_final)
+        if not compression_success:
+            print("[WARNING] Kompresi FFmpeg gagal. Gunakan video tanpa kompresi.")
+            try:
+                os.replace(temp_video_for_audio, raw_final)
+                compression_success = True
+            except Exception as e:
+                print(f"[ERROR] Gagal fallback ke video mentah: {e}")
+                compression_success = False
+        else:
+            # Hapus file sementara jika kompresi sukses
+            if os.path.exists(temp_video_for_audio):
+                os.remove(temp_video_for_audio)
+    else:
+        # Jika FFmpeg tidak ada → langsung gunakan video mentah dari OpenCV
+        print("[INFO] FFmpeg tidak ditemukan. Melewati kompresi.")
+        try:
+            os.replace(temp_video_for_audio, raw_final)
+            compression_success = True
+        except Exception as e:
+            print(f"[ERROR] Gagal pindahkan video mentah: {e}")
+            compression_success = False
+
+    # === 🔊 TAMBAHKAN AUDIO (HANYA JIKA VIDEO FINAL ADA) ===
+    if compression_success and os.path.exists(raw_final):
+        print(f"[DEBUG] Menambahkan audio ke: {raw_final}")
+        audio_path = AUDIO_PATH
+        print(f"[DEBUG] Lokasi audio: {audio_path}")
+        print(f"[DEBUG] File audio ada: {os.path.exists(audio_path)}")
+
+        if os.path.exists(audio_path):
+            final_with_audio = raw_final.replace('.mp4', '_with_audio.mp4')
+            if add_audio_to_video(raw_final, final_with_audio):
+                if os.path.exists(final_with_audio):
+                    os.replace(final_with_audio, raw_final)
+                    print("✅ Audio berhasil ditambahkan ke video.")
+                else:
+                    print("⚠️ File output audio gagal dibuat.")
+            else:
+                print("⚠️ Fungsi add_audio_to_video() mengembalikan False.")
+        else:
+            print("❌ File audio TIDAK DITEMUKAN! Periksa path:", audio_path)
+    else:
+        print("❌ Video final tidak tersedia atau kompresi gagal. Audio dilewati.")
+
+    # === SELESAI ===
     processing_status["status"] = "completed"
     processing_status["progress"] = 100
     gc.collect()
+
+    return compression_success
+    processing_status["progress"] = 100
+    gc.collect()
     
-    return True
+    return compression_success
 
 def process_video_async(raw_video, frame_overlay, impian, dream_key):
     """Background processing dengan unique code"""
@@ -388,6 +431,11 @@ def process_video_async(raw_video, frame_overlay, impian, dream_key):
         # Hapus raw video
         if os.path.exists(raw_video):
             os.remove(raw_video)
+        
+        # 🔥 UPLOAD KE BACKEND LOKAL
+        upload_success = upload_to_backend(final_video, ktp6, unique_code)
+        if not upload_success:
+            print("⚠️ Gagal upload ke backend, tapi file tetap disimpan lokal.")
     
     gc.collect()
 
@@ -438,8 +486,74 @@ def gen_frames():
 def generate_unique_code():
     # 5 karakter acak (huruf besar + angka), lalu akhiri dengan '7'
     chars = string.ascii_uppercase + string.digits
-    prefix = ''.join(random.choices(chars, k=5))
+    prefix = ''.join(random.choices(chars, k=6))
     return prefix + '7'
+
+def upload_to_backend(video_path, ktp6, unique_code):
+    """
+    Upload video ke backend lokal (localhost:4000)
+    """
+    upload_url = "http://localhost:4000/v1/files/offline"
+    
+    try:
+        with open(video_path, 'rb') as f:
+            files = {'file': (os.path.basename(video_path), f, 'video/mp4')}
+            response = requests.post(upload_url, files=files, timeout=120)
+        
+        if response.status_code in (200, 201):
+            print(f" Upload sukses: {video_path}")
+            return True
+        else:
+            print(f" Upload gagal: {response.status_code} - {response.text}")
+            return False
+    except Exception as e:
+        print(f" Error saat upload: {str(e)}")
+        return False
+
+def add_audio_to_video(video_path, output_path_with_audio):
+    """
+    Tambahkan 10 detik pertama dari soundprimariaction.wav ke video.
+    Video input diasumsikan TANPA audio.
+    """
+    global FFMPEG_PATH
+    if not FFMPEG_PATH:
+        return False
+
+    audio_path = AUDIO_PATH
+    if not os.path.exists(audio_path):
+        print(" Audio file not found:", audio_path)
+        return False
+
+    try:
+        # Potong 10 detik audio & gabungkan ke video
+        cmd = [
+            FFMPEG_PATH,
+            '-y',
+            '-i', video_path,                  # input video (tanpa audio)
+            '-ss', '0',                        # mulai dari detik 0
+            '-t', '10',                        # ambil 10 detik
+            '-i', audio_path,                  # input audio
+            '-c:v', 'copy',                    # copy video stream (tidak re-encode)
+            '-c:a', 'aac',                     # encode audio ke AAC
+            '-shortest',                       # hentikan sesuai durasi terpendek (10 detik)
+            '-map', '0:v:0',                   # ambil video dari input ke-0
+            '-map', '1:a:0',                   # ambil audio dari input ke-1
+            '-threads', '2',
+            output_path_with_audio
+        ]
+
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=60
+        )
+
+        return result.returncode == 0 and os.path.exists(output_path_with_audio)
+
+    except Exception as e:
+        print(f" Gagal menambahkan audio: {e}")
+        return False
 
 @app.route('/generate-qr')
 def generate_qr():
@@ -612,9 +726,18 @@ def final_result():
 def download():
     return render_template('download.html')
 
+@app.route('/bgm-player')
+def bgm_player():
+    return render_template('bgm_player.html')
+
 if __name__ == '__main__':
     print("=" * 50)
     print("Starting Flask App...")
+    ffmpeg_ok, ffmpeg_path = check_ffmpeg_installed()
+    print(" FFmpeg tersedia:", ffmpeg_ok)
+    if ffmpeg_ok:
+        print("   Path:", ffmpeg_path)
+    print(" File audio:", AUDIO_PATH)
+    print("   Ada?", os.path.exists(AUDIO_PATH))
     print("=" * 50)
-    check_ffmpeg_installed()
     app.run(debug=True, threaded=True, host='127.0.0.1', port=5000)

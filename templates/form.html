@@ -57,10 +57,10 @@
 
         .form-container {
             position: relative;
-            width: 85%;
+            width: 90%;
             max-width: 600px;
-            margin: 30% auto 0;
-            padding: 40px 35px;
+            margin: 20% auto 0;
+            padding: 30px 35px;
             border-radius: 15px;
             z-index: 5;
             display: flex;
@@ -158,15 +158,14 @@
         }
 
         .age-warning {
-            background: rgba(139,0,0,0.8);
-            color: white;
+            background: rgba(96, 21, 21, 0.8);
+            color: rgb(255, 0, 0);
             padding: 20px;
-            border-radius: 10px;
+            border-radius: 3px;
             margin-top: 15px;
             display: none;
             font-size: 0.95rem;
             line-height: 1.6;
-            border: 1px solid rgba(255,0,0,0.5);
         }
 
         .age-warning strong {
@@ -273,13 +272,12 @@
         }
 
         .brand-selector .warning-text {
-            background: rgba(139, 0, 0, 0.8);
-            color: white;
+            background: rgba(80, 10, 10, 0.8);
+            color: rgb(255, 0, 0);
             padding: 16px;
-            border-radius: 8px;
+            border-radius: 3px;
             font-size: 0.95rem;
             line-height: 1.5;
-            border: 1px solid rgba(255, 0, 0, 0.5);
             box-sizing: border-box;
         }
 
@@ -457,9 +455,53 @@
                 height: 65px;
             }
         }
+
+        /* === TAMBAHKAN INI DI BAWAH MEDIA QUERY MOBILE === */
+
+        @media (min-width: 769px) and (max-height: 500px) {
+            .form-container {
+                width: 90%;
+                max-width: 600px;
+                margin: 20% auto 0;
+                padding: 30px 20px;
+                gap: 70px;
+            }
+
+            .form-title {
+                font-size: 1.5rem;
+            }
+
+            input, select {
+                font-size: 1rem;
+            }
+
+            #smokerOptions {
+                height: 55px;
+            }
+
+            .brand-selector {
+                min-height: 85px;
+            }
+
+            .checkbox-container {
+                height: 65px;
+            }
+
+            .header img {
+                height: 60px;
+            }
+
+            .corner-top-right,
+            .corner-bottom-left {
+                width: 200px;
+                height: 200px;
+            }
+        }
     </style>
 </head>
 <body>
+        <!-- 🔊 Tambahkan ini di paling atas body -->
+    <iframe src="/bgm-player" id="bgmFrame" style="display:none;" title="BGM Player"></iframe>
 
     <div class="header">
         <img src="{{ url_for('static', filename='assets/logoprimaction.png') }}" alt="PRIMACTION Logo">
@@ -507,7 +549,7 @@
                 </label>
             </div>
 
-            <button type="button" class="btn-start" id="startBtn" disabled>Mulai</button>
+            <button type="button" class="btn-start" id="startBtn" disabled>Mulai, kuy !</button>
         </div>
     </div>
     <!-- Virtual Keyboard -->
@@ -515,13 +557,44 @@
         <!-- Tombol akan di-generate oleh JS -->
     </div>
 
+    <audio id="clickSound" preload="auto">
+        <source src="{{ url_for('static', filename='assets/sound/click.wav') }}" type="audio/wav">
+    </audio>
+
     <script>
+            // === SOUND KLIK ===
+    // === SOUND EFEK KLIK (TANPA DOUBLE) ===
+    const clickSound = document.getElementById('clickSound');
+    if (clickSound) {
+        clickSound.volume = 0.5; // sesuaikan volume (0.0 - 1.0)
+    }
+
+    function playClickSound() {
+        if (clickSound) {
+            clickSound.currentTime = 0;
+            clickSound.play().catch(() => {
+                // Abaikan error (autoplay policy)
+            });
+        }
+    }
+
+    // Gunakan pointerup: bekerja untuk mouse, touch, dan stylus — tanpa double
+    document.body.addEventListener('pointerup', playClickSound, { passive: true });
+
+        function getBGM() {
+            const iframe = document.getElementById('bgmFrame');
+            return iframe?.contentWindow?.BGM || null;
+        }
+
         let isAgeValid = false;
         let isSmokerSelected = false;
         let isBrandSelected = false;
         let isTermsAgreed = false;
         let currentInput = null;
         let isShift = false;
+        let redirectTimer = null;
+        let countdownElement = null;
+        let isRedirecting = false; // 🔑 FLAG BARU UNTUK HINDARI BENTROK
 
         // === VIRTUAL KEYBOARD LOGIC ===
         const keyboard = document.getElementById('virtualKeyboard');
@@ -635,25 +708,33 @@
             const action = btn.dataset.action;
             const char = btn.dataset.char;
 
+            let valueChanged = false;
+
             if (action === 'backspace') {
                 activeInput.value = activeInput.value.slice(0, -1);
+                valueChanged = true;
             } else if (action === 'close') {
                 hideKeyboard();
+                return; // Jangan picu input
             } else if (action === 'shift') {
                 isShift = !isShift;
-                createKeyboard(false); // update tampilan
+                createKeyboard(false);
+                return;
             } else if (action === 'toggle') {
-                // Untuk versi sederhana, kita tutup saja (atau bisa buka mode angka)
                 hideKeyboard();
+                return;
             } else if (char) {
                 activeInput.value += char;
+                valueChanged = true;
                 if (isShift) {
                     isShift = false;
                     createKeyboard(false);
                 }
             }
 
-            activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+            if (valueChanged) {
+                activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         });
 
         // Fokus input → tampilkan keyboard
@@ -665,7 +746,7 @@
             showKeyboard(document.getElementById('ktp6'), true);
         });
 
-        // === LOGIKA FORM SEBELUMNYA ===
+        // === LOGIKA FORM UTAMA ===
         document.getElementById('ktp6').addEventListener('input', validateKTP);
         document.getElementById('btnNonSmoker').addEventListener('click', selectNonSmoker);
         document.getElementById('btnSmoker').addEventListener('click', selectSmoker);
@@ -699,30 +780,38 @@
         }
 
         function validateKTP() {
+            // Jangan batalkan jika sedang dalam proses redirect
+            if (!isRedirecting) {
+                cancelRedirect();
+            }
+
             const ktp6 = document.getElementById('ktp6').value.trim();
             const inputField = document.getElementById('ktp6');
             const statusIcon = document.getElementById('ktpStatus');
             const errorDiv = document.getElementById('ktpError');
             const ageWarning = document.getElementById('ageWarning');
 
+            // Reset tampilan
             inputField.classList.remove('valid', 'invalid');
             statusIcon.classList.remove('valid', 'invalid');
             statusIcon.style.display = 'none';
-            statusIcon.textContent = '';
             errorDiv.style.display = 'none';
             ageWarning.style.display = 'none';
 
+            // Reset status global
             isAgeValid = false;
             isSmokerSelected = false;
             isBrandSelected = false;
             isTermsAgreed = false;
 
+            // Sembunyikan bagian lanjutan
             document.getElementById('smokerOptions').classList.remove('visible');
             document.getElementById('brandSelector').classList.remove('visible');
             document.getElementById('termsCheckbox').classList.remove('visible');
             document.getElementById('startBtn').disabled = true;
             document.getElementById('startBtn').classList.remove('active');
 
+            // Validasi: harus 6 digit angka
             if (!ktp6) return;
 
             if (ktp6.length !== 6 || !/^\d{6}$/.test(ktp6)) {
@@ -730,19 +819,16 @@
                 return;
             }
 
-            const day = parseInt(ktp6.substring(0,2));
-            const month = parseInt(ktp6.substring(2,4));
-            const year = parseInt(ktp6.substring(4,6));
+            // Ambil 2 digit pertama sebagai tahun (YY)
+            const yyStr = ktp6.substring(0, 2);
+            const YY = parseInt(yyStr, 10);
 
-            if (day < 1 || day > 31 || month < 1 || month > 12) {
-                showInvalid('Format tanggal tidak valid.');
-                return;
-            }
-
-            const currentYear = new Date().getFullYear();
-            const birthYear = year + (year > 24 ? 1900 : 2000);
+            // Tentukan tahun lahir
+            const birthYear = YY > 24 ? 1900 + YY : 2000 + YY;
+            const currentYear = 2026; // Tanggal aktual: 6 Januari 2026
             const age = currentYear - birthYear;
 
+            // Cek usia ≥ 21
             if (age < 21) {
                 inputField.classList.add('invalid');
                 statusIcon.classList.add('invalid');
@@ -750,13 +836,16 @@
                 statusIcon.style.display = 'block';
                 ageWarning.innerHTML = `
                     <strong>Usia kamu di bawah 21 Tahun</strong>
-                    Maaf, kamu belum bisa melanjutkan karena bukan perokok. 
+                    Maaf, kamu belum bisa melanjutkan. 
                     Engagement ini hanya ditujukan untuk orang-orang 21 tahun ke atas. Terima kasih.
                 `;
                 ageWarning.style.display = 'block';
+
+                redirectToHomeAfterDelay(10);
                 return;
             }
 
+            // Valid → lanjut
             inputField.classList.add('valid');
             statusIcon.classList.add('valid');
             statusIcon.textContent = '✓';
@@ -780,6 +869,8 @@
         }
 
         function selectNonSmoker() {
+            cancelRedirect(); // Aman karena isRedirecting = false saat klik
+
             resetSmokerButtons();
             document.getElementById('btnNonSmoker').classList.add('selected');
             isSmokerSelected = false;
@@ -791,6 +882,8 @@
             document.getElementById('termsCheckbox').classList.remove('visible');
             document.getElementById('startBtn').disabled = true;
             document.getElementById('startBtn').classList.remove('active');
+
+            redirectToHomeAfterDelay(10);
         }
 
         function selectSmoker() {
@@ -855,6 +948,83 @@
 
             window.location.href = '/select_frame';
         });
+
+        // === FUNGSI REDIRECT & CANCEL ===
+        function redirectToHomeAfterDelay(seconds) {
+            isRedirecting = true;
+            setTimeout(() => {
+                isRedirecting = false;
+            }, 150);
+
+            cancelRedirect();
+
+            const startBtn = document.getElementById('startBtn');
+            if (!startBtn || !startBtn.parentNode) return;
+
+            // Buat elemen countdown
+            const countdownEl = document.createElement('div');
+            countdownEl.id = 'countdown';
+            countdownEl.textContent = `Halaman tertutup dalam ${seconds} detik.`;
+            countdownEl.style.cssText = `
+                color: #aaa;
+                font-size: 1rem;
+                font-weight: 400;
+                text-align: center;
+                margin-bottom: 15px; /* Jarak ke tombol */
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+
+            // 🔑 Sisipkan TEPAT SEBELUM tombol di dalam parent yang sama
+            startBtn.parentNode.insertBefore(countdownEl, startBtn);
+
+            // Fade-in
+            setTimeout(() => {
+                countdownEl.style.opacity = '1';
+            }, 50);
+
+            let remaining = seconds;
+            redirectTimer = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(redirectTimer);
+                    window.location.href = '/';
+                } else {
+                    countdownEl.textContent = `Halaman tertutup dalam ${remaining} detik.`;
+                }
+            }, 1000);
+        }
+
+        function cancelRedirect() {
+            if (isRedirecting) return;
+
+            if (redirectTimer) {
+                clearInterval(redirectTimer);
+                redirectTimer = null;
+            }
+
+            const countdownEl = document.getElementById('countdown');
+            if (countdownEl && countdownEl.parentNode) {
+                countdownEl.parentNode.removeChild(countdownEl);
+                countdownElement = null;
+            }
+        }
+        
+        // === EVENT LISTENER UNTUK CANCEL (aman) ===
+        document.getElementById('nama').addEventListener('input', cancelRedirect);
+        document.getElementById('btnNonSmoker').addEventListener('click', cancelRedirect);
+        document.getElementById('btnSmoker').addEventListener('click', cancelRedirect);
+
+        // ❌ JANGAN TAMBAHKAN UNTUK ktp6 — sudah ditangani di validateKTP()
+        (function() {
+            if (sessionStorage.getItem('soundDecision') === 'allowed') {
+                const bgm = getBGM();
+                if (bgm) {
+                    bgm.volume = 0.25;
+                    bgm.play().catch(e => console.warn("BGM play delayed:", e));
+                }
+            }
+        })();
     </script>
 </body>
 </html>

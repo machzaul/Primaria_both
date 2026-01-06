@@ -188,7 +188,38 @@
         <button class="btn-continue" id="continueBtn" disabled>Lanjut Gan</button>
     </div>
 
+    <audio id="globalBGM" loop>
+        <source src="{{ url_for('static', filename='assets/sound/bgmlooped.mp3') }}" type="audio/mpeg">
+    </audio>
+    <audio id="clickSound" preload="auto">
+        <source src="{{ url_for('static', filename='assets/sound/click.wav') }}" type="audio/wav">
+    </audio>
+
+
     <script>
+
+        if (sessionStorage.getItem('soundDecision') === 'allowed') {
+            const bgm = document.getElementById('globalBGM');
+            if (bgm) {
+                bgm.volume = 0.1;
+                bgm.play().catch(e => console.log("BGM delayed"));
+            }
+        }
+
+        const clickSound = document.getElementById('clickSound');
+
+        if (clickSound) clickSound.volume = 0.5;
+
+        function playClickSound() {
+            if (clickSound) {
+                clickSound.currentTime = 0;
+                clickSound.play().catch(() => {});
+            }
+        }
+
+        // Gunakan pointerup — satu event untuk semua input
+        document.body.addEventListener('pointerup', playClickSound, { passive: true });
+
         let selectedFrame = null;
 
         const frameOptions = document.querySelectorAll('.frame-option');

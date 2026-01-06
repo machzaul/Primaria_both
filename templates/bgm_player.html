@@ -1,0 +1,25 @@
+<!-- templates/bgm_player.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BGM Player</title>
+    <style>body { margin: 0; }</style>
+</head>
+<body>
+    <audio id="bgm" loop>
+        <source src="/static/assets/sound/bgmlooped.mp3" type="audio/mpeg">
+    </audio>
+    <script>
+        const bgm = document.getElementById('bgm');
+        bgm.volume = 0.3;
+
+        // Simpan referensi global agar bisa diakses dari parent
+        window.BGM = bgm;
+
+        // Opsional: auto-play jika diizinkan
+        window.addEventListener('load', () => {
+            // Tidak dipaksa play di sini — biar parent yang kendalikan
+        });
+    </script>
+</body>
+</html>
